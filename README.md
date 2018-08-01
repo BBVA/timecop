@@ -7,8 +7,11 @@ TimeCop
 This repository provides a RESTful webservice engine to evaluate univariate and multivariate timeseries.
 
 It is meant to be used to provide timeserie behaviour in:
+
 1.- Past:  Anomaly detection in timeseries: Was there any anomaly?
+
 2.- Present: Is there any anomaly right now? 
+
 3.- Future: timeseries forecast
 
 To achive this goal, engine compares several timeserie forecasting algorithms and select the best to send you the best features.
@@ -36,6 +39,7 @@ WINNER ENGINE
   "engine": "Holtwinters", 
 
 FORECAST 
+
   "future": {     
     "126": 15136.0, 
     "127": 16733.0, 
@@ -50,11 +54,13 @@ FORECAST
   }, 
  
  METRICS
+ 
   "mae": 5994.289473684211, 
   "mse": 50689736.39473684, 
   "rmse": 7119.672492097992,
 
   ANOMALIES IN THE PAST
+  
   "past": [
     {
       "anomaly_score": 0.0, 
