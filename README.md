@@ -28,6 +28,9 @@ curl -i -H "Content-Type: application/json" -X POST -d '{"timeseries":[ {"data":
 ```
 
 ## RESPONSE
+
+Webservice send you info about the past, present and future of timeseries in the following format.
+
 ```
 { 
 ```
