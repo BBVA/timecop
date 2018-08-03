@@ -24,9 +24,207 @@ from datetime import timedelta
 
 
 
+from keras.models import Sequential
+from keras.layers.recurrent import LSTM
+from keras.layers.core import Dense, Activation, Dropout
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.metrics import mean_squared_error
+from sklearn.utils import shuffle
+
+import math
+
+
+#LSTM
+
+def create_dataset(dataset, window_size = 1):
+    data_X, data_Y = [], []
+    for i in range(len(dataset) - window_size - 1):
+        a = dataset[i:(i + window_size), 0]
+        data_X.append(a)
+        data_Y.append(dataset[i + window_size, 0])
+    return(np.array(data_X), np.array(data_Y))
+
+# Define the model.
+def fit_model_new(train_X, train_Y, window_size = 1):
+    model2 = Sequential()
+    model2.add(LSTM(input_shape = (window_size, 1), 
+               units = window_size, 
+               return_sequences = True))
+    model2.add(Dropout(0.5))
+    model2.add(LSTM(256))
+    model2.add(Dropout(0.5))
+    model2.add(Dense(1))
+    model2.add(Activation("linear"))
+    model2.compile(loss = "mse", 
+              optimizer = "adam")
+    model2.summary()
+
+    # Fit the first model.
+    model2.fit(train_X, train_Y, epochs = 80, 
+              batch_size = 1, 
+              verbose = 2)
+    return(model2)
+
+
+    
+def predict_and_score(model, X, Y,scaler):
+    # Make predictions on the original scale of the data.
+    pred_scaled =model.predict(X)
+    pred = scaler.inverse_transform(pred_scaled)
+    # Prepare Y data to also be on the original scale for interpretability.
+    orig_data = scaler.inverse_transform([Y])
+    # Calculate RMSE.
+    score = mean_squared_error(orig_data[0], pred[:, 0])
+    mae = mean_absolute_error(orig_data[0], pred[:, 0])
+    return(score, pred, pred_scaled,mae)
+
+
+
+
 def mean_absolute_percentage_error(y_true, y_pred): 
     y_true, y_pred = np.array(y_true), np.array(y_pred)
     return np.mean(np.abs((y_true - y_pred) / y_true)) * 100
+
+
+
+def anomaly_uni_LSTM(lista_datos,desv_mse=0):
+
+
+
+    temp= pd.DataFrame(lista_datos,columns=['values'])
+    print(temp.head())
+    # Get the raw data values from the pandas data frame.
+    data_raw = temp.values.astype("float32")
+
+    # We apply the MinMax scaler from sklearn
+    # to normalize data in the (0, 1) interval.
+    scaler = MinMaxScaler(feature_range = (0, 1))
+    dataset = scaler.fit_transform(data_raw)
+
+    # Print a few values.
+    dataset[0:5]
+    dataset.shape
+
+
+    print(data_raw)
+    # Using 70% of data for training, 40% for validation.
+    TRAIN_SIZE = 0.70
+
+    train_size = int(len(dataset) * TRAIN_SIZE)
+    test_size = len(dataset) - train_size
+    train, test = dataset[0:train_size, :], dataset[train_size:len(dataset), :]
+    print("Number of entries (training set, test set): " + str((len(train), len(test))))
+
+
+
+    # Create test and training sets for one-step-ahead regression.
+    window_size = 1
+    train_X, train_Y = create_dataset(train, window_size)
+    test_X, test_Y = create_dataset(test, window_size)
+    forecast_X, forecast_Y = create_dataset(dataset,window_size)
+    print("Original training data shape:")
+    print(train_X.shape)
+
+
+
+
+    # Reshape the input data into appropriate form for Keras.
+    train_X = np.reshape(train_X, (train_X.shape[0], 1, train_X.shape[1]))
+    test_X = np.reshape(test_X, (test_X.shape[0], 1, test_X.shape[1]))
+    forecast_X = np.reshape(forecast_X, (forecast_X.shape[0], 1, forecast_X.shape[1]))
+    
+    print("New training data shape:")
+    print(train_X.shape)
+    print(train_X)
+
+
+    model2=fit_model_new(train_X, train_Y)
+
+
+    mse_train, train_predict, train_predict_scaled,mae_train = predict_and_score(model2, train_X, train_Y,scaler)
+    mse_test, test_predict, test_predict_scaled,mae_test = predict_and_score(model2, test_X, test_Y,scaler)
+    
+    print ("predict")
+    print (test_predict)
+    print ("test")
+    print (test)
+    
+    df_aler = pd.DataFrame()
+    test=scaler.inverse_transform([test_Y])
+    
+    df_aler['real_value'] = test[0]
+    
+    df_aler['expected value'] = test_predict
+    df_aler['step'] = np.arange(0, len(test_predict),1)
+    df_aler['mae']=mae_test
+    df_aler['mse']=mse_test
+    df_aler['anomaly_score'] = abs(df_aler['expected value'] - df_aler['real_value']) / df_aler['mae']
+    
+    
+    df_aler_ult = df_aler[:5]
+
+    df_aler_ult = df_aler_ult[(df_aler_ult.index==df_aler.index.max())|(df_aler_ult.index==((df_aler.index.max())-1))
+                             |(df_aler_ult.index==((df_aler.index.max())-2))|(df_aler_ult.index==((df_aler.index.max())-3))
+                             |(df_aler_ult.index==((df_aler.index.max())-4))]
+    if len(df_aler_ult) == 0:
+        exists_anom_last_5 = 'FALSE'
+    else:
+        exists_anom_last_5 = 'TRUE'
+    
+
+
+    df_aler = df_aler[(df_aler['anomaly_score']> 2)]
+
+    max = df_aler['anomaly_score'].max()
+    min = df_aler['anomaly_score'].min()
+    df_aler['anomaly_score']= ( df_aler['anomaly_score'] - min ) /(max - min)
+    
+    
+    max = df_aler_ult['anomaly_score'].max()
+    min = df_aler_ult['anomaly_score'].min()
+ 
+    df_aler_ult['anomaly_score']= ( df_aler_ult['anomaly_score'] - min ) /(max - min)
+
+    
+    
+    
+
+
+    pred_scaled =model2.predict(forecast_X)
+    pred = scaler.inverse_transform(pred_scaled)
+    
+    print(pred)
+    print ('prediccion')
+    
+    print("Training data score: %.2f MSE" % mse_train)
+    print("Test data score: %.2f MSE" % mse_test)
+    engine_output={}
+
+
+
+    engine_output['rmse'] = math.sqrt(mse_test)
+    engine_output['mse'] = mse_test
+    engine_output['mae'] = mae_test
+    print ('mae' + str(mae_test))
+    engine_output['present_status']=exists_anom_last_5
+    engine_output['present_alerts']=df_aler_ult.to_dict(orient='record')
+    engine_output['past']=df_aler.to_dict(orient='record')
+    engine_output['engine']='LTSM'
+    df_future= pd.DataFrame(pred[:5],columns=['value'])
+    df_future['value']=df_future.value.astype("float32")
+    df_future['step']= np.arange( len(lista_datos),len(lista_datos)+5,1)
+    print(df_future)
+    engine_output['future'] = df_future.to_dict(orient='record')
+    return (engine_output)
+
+
+
+
+
+
+
+
+
 
 def anomaly_AutoArima(lista_datos,desv_mse=0):
     
@@ -134,17 +332,20 @@ def anomaly_AutoArima(lista_datos,desv_mse=0):
     ############## FORECAST START
     updated_model = stepwise_model.fit(df['valores'])
     
-    forecast = updated_model.predict(n_periods=10)
+    forecast = updated_model.predict(n_periods=5)
     
 
     engine_output['rmse'] = rmse
-    engine_output['mse'] = error
+    engine_output['mse'] = mse
     engine_output['mae'] = mean_absolute_error(list_test, future_forecast_pred)
     engine_output['present_status']=exists_anom_last_5
     engine_output['present_alerts']=df_aler_ult.to_dict(orient='record')
     engine_output['past']=df_aler.to_dict(orient='record')
     engine_output['engine']='Autoarima'
-    engine_output['future'] = forecast.to_dict(orient='record')
+    df_future= pd.DataFrame(forecast,columns=['value'])
+    df_future['value']=df_future.value.astype("float32")
+    df_future['step']= np.arange( len(lista_datos),len(lista_datos)+5,1)
+    engine_output['future'] = df_future.to_dict(orient='record')
     
     return (engine_output)
 
@@ -203,7 +404,7 @@ def anomaly_holt(lista_datos,desv_mse=0):
 
 
     ####################ENGINE START
-    stepwise_model =  ExponentialSmoothing(df_train['valores'],seasonal_periods=len(df_train['valores']) , seasonal='add')
+    stepwise_model =  ExponentialSmoothing(df_train['valores'],seasonal_periods=1 )
     fit_stepwise_model = stepwise_model.fit()
 
 
@@ -560,13 +761,21 @@ def model_univariate(lista_datos,num_fut,desv_mse):
     engines_output={}
     
     try:
+        engines_output['LSTM'] = anomaly_uni_LSTM(lista_datos,desv_mse)
+    except Exception as e: 
+        print(e)
+        print ('ERROR: exception executing LSTM univariate')
+    
+    try:
         engines_output['arima'] = anomaly_AutoArima(lista_datos,desv_mse)
-    except:
+    except  Exception as e: 
+        print(e)
         print ('ERROR: exception executing Autoarima')
     
     try:
         engines_output['Holtwinters'] = anomaly_holt(lista_datos,desv_mse)
-    except:
+    except  Exception as e: 
+        print(e)
         print ('ERROR: exception executing Holtwinters')
     
     best_mae=999999999
@@ -574,9 +783,12 @@ def model_univariate(lista_datos,num_fut,desv_mse):
     print ('el tamanio es ')
     print (len(engines_output))
     for key, value in engines_output.iteritems():
+        print (value['mae'])
+        print(key)
         if value['mae'] < best_mae:
-            best_rmse=value['mae']
+            best_mae=value['mae']
             winner=key
+        print(winner)
             
     #if winner=='Holtwinters':
     #    future= forecast_holt(lista_datos,num_fut)
