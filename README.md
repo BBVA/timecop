@@ -48,31 +48,76 @@ The response of the webservice will provide the info of the behaviour of the tim
 
 An example response will be:
 
-```
-{ 
-```
-*WINNER ENGINE*
+```json
+{
+    "engine": "Holtwinters",
+    
+    "future": {
+                  "126": 15136.0, "127": 16733.0, "128": 20016.0, "129": 17708.0, "130": 18019.0, "131": 19227.0, "132": 22893.0, "133":          23739.0, "134": 21133.0, "135": 22591.0 },
+                  
+    "mae": 5994.289473684211, 
+    
+    "mse": 50689736.39473684, 
+    
+    "rmse": 7119.672492097992,
+    
+    "past": [ { 
+                  "anomaly_score": 0.0, 
+                  "expected value": 20016.0, 
+                  "mae": 5994.289473684211, 
+                  "mse": 50689736.39473684, 
+                  "real_value": 33151.0, 
+                  "rmse": 7119.672492097992, 
+                  "step": 90.0 }, 
+               {
+                  "anomaly_score": 1.0, 
+                  "expected value": 23739.0, 
+                  "mae": 5994.289473684211, 
+                  "mse": 50689736.39473684, 
+                  "real_value": 40226.0, 
+                  "rmse": 7119.672492097992, 
+                  "step": 95.0 }, 
+               { 
+                  "anomaly_score": 0.3460620525059665, 
+                  "expected value": 20008.0, 
+                  "mae": 5994.289473684211, 
+                  "mse": 50689736.39473684, 
+                  "real_value": 34303.0, 
+                  "rmse": 7119.672492097992, "step": 102.0 
+               } ],
+               
+     "present_alerts": [], 
+     
+     "present_status": "FALSE" 
+}
+
 ```
 
+
+#### Response explained
+
+Here it is explained each element of the response:
+
+*WINNER ENGINE* : The best engine regarding the MSE metric
+```
 "engine": "Holtwinters",
 ```
 
-*FORECAST*
+*FORECAST* : The forecast of the time series next 5 points
 ```
-
 "future": {
 "126": 15136.0, "127": 16733.0, "128": 20016.0, "129": 17708.0, "130": 18019.0, "131": 19227.0, "132": 22893.0, "133": 23739.0, "134": 21133.0, "135": 22591.0 },
 ```
-*METRICS*
+*METRICS* : Basic metrics of the winner engine
 ```
 "mae": 5994.289473684211, "mse": 50689736.39473684, "rmse": 7119.672492097992,
 ```
 
-*ANOMALIES IN THE PAST*
+*ANOMALIES IN THE PAST* : Previous anomalies and its metrics
 ```
 "past": [ { "anomaly_score": 0.0, "expected value": 20016.0, "mae": 5994.289473684211, "mse": 50689736.39473684, "real_value": 33151.0, "rmse": 7119.672492097992, "step": 90.0 }, { "anomaly_score": 1.0, "expected value": 23739.0, "mae": 5994.289473684211, "mse": 50689736.39473684, "real_value": 40226.0, "rmse": 7119.672492097992, "step": 95.0 }, { "anomaly_score": 0.3460620525059665, "expected value": 20008.0, "mae": 5994.289473684211, "mse": 50689736.39473684, "real_value": 34303.0, "rmse": 7119.672492097992, "step": 102.0 } ],
 ```
-*PRESENT STATUS*
+*PRESENT STATUS* : Currently alert points and alert flag
 
 ```
 "present_alerts": [], "present_status": "FALSE" }
