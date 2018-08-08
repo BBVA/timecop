@@ -34,7 +34,7 @@ The way to invoke the webservice is to POST the data points in a json format pro
 In the case of univariate time series we will need to send a json with a key value pair in the following format: 
 
     Key name: "data".
-    Values of data: number array representing the time series points. 
+    Values of data: array representing the time series points. 
     
     
 In the case of multivariate time series we want to analyze and predict one time series with respect to the rest of time series. For example if we have 3 time series, we will need to specify the time series that we want to predict whit respect to the 2 others. The json has to meet the following format: 
@@ -42,11 +42,11 @@ In the case of multivariate time series we want to analyze and predict one time 
     Key name: "timeseries".
     Values of data: several key value pairs representing the time series that will help us to predict the target time series:
              Key name: "data".
-             Values of data: number array representing the time series points. 
+             Values of data: array representing the time series points. 
              ....
     
     Key name: "main".
-    Values of data: number array representing the target time series points that we want to analyze and predict. 
+    Values of data: array representing the target time series points that we want to analyze and predict. 
 
 Here it is shown two examples invoking the webservice with a univariate time series and a multivariate one:
 
