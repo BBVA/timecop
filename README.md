@@ -1,22 +1,32 @@
 TIMECOP
 =======
 
-This repository provides a RESTful webservice engine to evaluate univariate and multivariate timeseries.
+TIMECOP is a RESTful webservice engine that evaluates univariate and multivariate timeseries. It is considerated the current state of the time series as the last five points, the past state as all the previous points before the current state and the future state as the forecast of the next 5 points. 
 
-It is meant to be used to provide timeserie behaviour in:
+The aim of TIMECOP is to get insight on the behavior of the time series. To achieve this, the engine compares several time series forecasting algorithms and select the best one according to the MAE (mean absolute error) metric. The 3 different algorithms that compounds the engine are: Holt-Winters, ARIMA, and Recurrent Neural Networks using LSMT cells.
 
-1. Past: Anomaly detection in timeseries: Was there any anomaly?
+In the end we will obtain:
 
-2. Present: Is there any anomaly right now?
+1. The best of the thre evaluated algos regarding the MSE metric.
 
-3. Future: timeseries forecast
+2. Past anomalies. The past state points of the time series that have been considerated as anomalous.
 
-To achive this goal, engine compares several timeserie forecasting algorithms and select the best to send you the best features.
-USAGE
+3. Current anomalies. The engine returns a flag that tells you whether there are anomalies in the last 5 points or not and the current anomalous points if there were. 
 
-The only HTTP method created is POST. Sending a univariate or multivariate timeseries and send you a json with all data about the timeserie.
+4. Future time series forecast of the next five points.
+
+
+## Getting Started
+
+To use TIMECOP engine you will need to send a univariate or multivariate time series data points in a json format to the webservice. The only HTTP method created is POST. The service will then return you a json with the result of the analysis. The basic process is shown in the next figure:
+![alt text](https://lh3.googleusercontent.com/-2u5s5kSdhLA/W2g9-06WPgI/AAAAAAAAAAM/5H96cYcdlJogmh2zQGooNf1a9ynOPhU1ACL0BGAYYCw/h350/2018-08-06.jpg)
+
 
 ## INVOKE
+
+The way to invoke the webservice is to POST the data points in a json format providing the webservice URL.
+
+Here it is shown two examples invoking the webservice with a univariate time series and a multivariate one:
 
 ###### UNIVARIATE
 ```
@@ -29,7 +39,9 @@ curl -i -H "Content-Type: application/json" -X POST -d '{"timeseries":[ {"data":
 
 ## RESPONSE
 
-Webservice send you info about the past, present and future of timeseries in the following format.
+The response of the webservice will provide the info of the behaviour of the time series in a json format as explained previously.
+
+An example response will be:
 
 ```
 { 
