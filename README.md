@@ -22,6 +22,8 @@ In the end we will obtain:
 ## Getting Started
 
 To use TIMECOP engine you will need to send a univariate or multivariate time series data points in a json format to the webservice. The only HTTP method created is POST. The service will then return you a json with the result of the analysis. The basic process is shown in the next figure:
+
+
 ![alt text](https://raw.githubusercontent.com/BBVA/timecop/master/doc/img/flow.jpg)
 
 
