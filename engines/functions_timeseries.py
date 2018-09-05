@@ -102,9 +102,6 @@ def mean_absolute_percentage_error(y_true, y_pred):
 
 
 def anomaly_uni_LSTM(lista_datos,desv_mse=0):
-
-
-    
     temp= pd.DataFrame(lista_datos,columns=['values'])
     data_raw = temp.values.astype("float32")
 
@@ -118,28 +115,24 @@ def anomaly_uni_LSTM(lista_datos,desv_mse=0):
     train_size = int(len(dataset) * TRAIN_SIZE)
     test_size = len(dataset) - train_size
     train, test = dataset[0:train_size, :], dataset[train_size:len(dataset), :]
-    print("Number of entries (training set, test set): " + str((len(train), len(test))))
-
-
+    #print("Number of entries (training set, test set): " + str((len(train), len(test))))
 
     # Create test and training sets for one-step-ahead regression.
     window_size = 1
     train_X, train_Y = create_dataset(train, window_size)
     test_X, test_Y = create_dataset(test, window_size)
     forecast_X, forecast_Y = create_dataset(dataset,window_size)
-    print("Original training data shape:")
-    print(train_X.shape)
-
-
+    #print("Original training data shape:")
+    #print(train_X.shape)
 
 
     train_X = np.reshape(train_X, (train_X.shape[0], 1, train_X.shape[1]))
     test_X = np.reshape(test_X, (test_X.shape[0], 1, test_X.shape[1]))
     forecast_X = np.reshape(forecast_X, (forecast_X.shape[0], 1, forecast_X.shape[1]))
     
-    print("New training data shape:")
-    print(train_X.shape)
-    print(train_X)
+    #print("New training data shape:")
+    #print(train_X.shape)
+    #print(train_X)
 
 
     #############new engine LSTM
@@ -155,16 +148,27 @@ def anomaly_uni_LSTM(lista_datos,desv_mse=0):
     yhat_inverse = scaler.inverse_transform(yhat.reshape(-1, 1))
     testY_inverse = scaler.inverse_transform(test_Y.reshape(-1, 1))
 
+    print (len(test_X))
+    print (len(test_Y))
+    lista_puntos = np.arange(len(test_X), len(test_X) + len(test_Y),1)
+    
+    #print (yhat_inverse)
+    print (lista_puntos)
+    testing_data = pd.DataFrame(yhat_inverse,index =lista_puntos,columns=['Prediction'])
+
+    
+    
+    
     rmse = math.sqrt(mean_squared_error(testY_inverse, yhat_inverse))
     mse=mean_squared_error(testY_inverse, yhat_inverse)
-    print('Test RMSE: %.3f' % rmse)
+    #print('Test RMSE: %.3f' % rmse)
     mae = mean_absolute_error(testY_inverse, yhat_inverse)
-    print ('test mae LSTM = ' +str(mae))
+    #print ('test mae LSTM = ' +str(mae))
 
-    print testY_inverse
-    print yhat_inverse
+    #print testY_inverse
+    #print yhat_inverse
 
-    print ('fin')
+    #print ('fin')
 
 
 
@@ -235,7 +239,7 @@ def anomaly_uni_LSTM(lista_datos,desv_mse=0):
     engine_output['rmse'] = str(math.sqrt(mse))
     engine_output['mse'] = int(mse)
     engine_output['mae'] = int(mae)
-    print ('mae' + str(mae))
+    #print ('mae' + str(mae))
     engine_output['present_status']=exists_anom_last_5
     engine_output['present_alerts']=df_aler_ult.fillna(0).to_dict(orient='record')
     engine_output['past']=df_aler.fillna(0).to_dict(orient='record')
@@ -243,8 +247,14 @@ def anomaly_uni_LSTM(lista_datos,desv_mse=0):
     df_future= pd.DataFrame(pred[:15],columns=['value'])
     df_future['value']=df_future.value.astype("float64")
     df_future['step']= np.arange( len(lista_datos),len(lista_datos)+15,1)
-    print(df_future)
+    #print(df_future)
     engine_output['future'] = df_future.to_dict(orient='record')
+    testing_data.Prediction.astype("float64")
+    testing_data['step']=testing_data.index
+    testing_data.step.astype("float64")
+
+    engine_output['debug'] = testing_data.to_dict(orient='record')
+
     return (engine_output)
 
 
@@ -273,9 +283,9 @@ def anomaly_AutoArima(lista_datos,desv_mse=0):
     tam_train = int(len(df)*0.7)
     #print tam_train
     df_train = df[:tam_train]
-    print('Tamanio train: {}'.format(df_train.shape))
+    #print('Tamanio train: {}'.format(df_train.shape))
     df_test = df[tam_train:]
-    print('Tamanio test: {}'.format(df_test.shape))
+    #print('Tamanio test: {}'.format(df_test.shape))
     
     engine_output={}
     
@@ -294,9 +304,9 @@ def anomaly_AutoArima(lista_datos,desv_mse=0):
                               #disp=-1,
                               #stepwise=False) 
     
-    print(stepwise_model.aic())
+    #print(stepwise_model.aic())
     
-    print ('ARima')
+    #print ('ARima')
     stepwise_model.fit(df_train['valores'])
 
     fit_forecast_pred = stepwise_model.predict_in_sample(df_train['valores'])
@@ -310,9 +320,9 @@ def anomaly_AutoArima(lista_datos,desv_mse=0):
 
     mse = mean_squared_error(list_test, future_forecast_pred)
 
-    print('El error medio del modelo_test es: {}'.format(mse))
+    #print('El error medio del modelo_test es: {}'.format(mse))
     rmse = np.sqrt(mse)
-    print('El root error medio del modelo_test es: {}'.format(rmse))
+    #print('El root error medio del modelo_test es: {}'.format(rmse))
 
     mse_abs_test = abs(mse_test)
 
@@ -388,6 +398,9 @@ def anomaly_AutoArima(lista_datos,desv_mse=0):
     df_future['value']=df_future.value.astype("float32")
     df_future['step']= np.arange( len(lista_datos),len(lista_datos)+5,1)
     engine_output['future'] = df_future.to_dict(orient='record')
+    testing_data  = pd.DataFrame(future_forecast_pred,index = df_test.index,columns=['expected value'])
+    testing_data['step']=testing_data.index
+    engine_output['debug'] = testing_data.to_dict(orient='record')
     
     return (engine_output)
 
@@ -407,6 +420,7 @@ def anomaly_holt(lista_datos,desv_mse=0):
     df.set_index('puntos',inplace=True,drop=False)
     #print df
     tam_train = int(len(df)*0.7)
+    print (" train length" + str(tam_train))
     
     df_train = df[:tam_train]
     #print('Tamanio train: {}'.format(df_train.shape))
@@ -422,9 +436,11 @@ def anomaly_holt(lista_datos,desv_mse=0):
     fit_stepwise_model = stepwise_model.fit()
 
 
-    fit_forecast_pred = fit_stepwise_model.fittedvalues
+    fit_forecast_pred_full = fit_stepwise_model.fittedvalues
 
     future_forecast_pred = fit_stepwise_model.forecast(len(df_test['valores']))
+    test_values = pd.DataFrame(future_forecast_pred.values,index = df_test.index,columns=['expected value'])
+
 
 
 
@@ -435,16 +451,55 @@ def anomaly_holt(lista_datos,desv_mse=0):
     
     print(ventanas[0])
     training_data=[]
+    count=0
+    
+    forecast_pred10 =[]
+    real_pred10=[]
     for slot in ventanas:
-        training_data.extend(slot)
-        stepwise_model =  ExponentialSmoothing(training_data,seasonal_periods=1 )
+        if count != 0:    
+            stepwise_model =  ExponentialSmoothing(training_data,seasonal_periods=1 )
+            fit_stepwise_model = stepwise_model.fit()
+
+
+            future_forecast_pred = fit_stepwise_model.forecast(len(slot))
+            forecast_pred10.extend(future_forecast_pred)
+            real_pred10.extend(slot)
+            training_data.extend(slot)
+            
+        else:
+            training_data.extend(slot)
+            forecast_pred10.extend(slot)
+            real_pred10.extend(slot)
+            count=1
+
+    print ('windows prediction')
+    #print ( forecast_pred10)
+    #print ( real_pred10)
+    
+    print ('windows mae '  + str(mean_absolute_error(forecast_pred10, real_pred10)))
+    
+        ####################ENGINE START
+
+    ##########GRID to find seasonal n_periods
+    mae_period = 99999
+    best_period=0
+    for period in range(2,50):
+        print ("el periodo es " + str(period))
+        stepwise_model =  ExponentialSmoothing(df_train['valores'],seasonal_periods=12 ,trend='add', seasonal='add', )
         fit_stepwise_model = stepwise_model.fit()
 
 
-        future_forecast_pred = fit_stepwise_model.forecast(len(slot))
-        print future_forecast_pred
-        print ('prediction')
+        #fit_forecast_pred_full = fit_stepwise_model.fittedvalues
 
+        future_forecast_pred = fit_stepwise_model.forecast(len(df_test['valores']))
+        mae_temp = mean_absolute_error(future_forecast_pred.values,df_test['valores'].values)
+        if mae_temp < mae_period:
+            best_period=period
+            mae_period=mae_temp
+        else:
+            print ("mae:" + str(mae_temp))
+    print ("######best mae is " + str(mae_period) + " with the period " + str(best_period))
+    
 
 
 
@@ -452,27 +507,27 @@ def anomaly_holt(lista_datos,desv_mse=0):
     mse_test = (future_forecast_pred - list_test)
     #print (mse_test)
     print (future_forecast_pred.values)
-
+    
     print(list_test)
 
-    error = mean_squared_error(future_forecast_pred.values,list_test)
+    mse = mean_squared_error(future_forecast_pred.values,list_test)
     #print error
 
-    print('El error medio del modelo_test es: {}'.format(error))
-    rmse = np.sqrt(error)
+    print('El error medio del modelo_test es: {}'.format(mse))
+    rmse = np.sqrt(mse)
     print('El root error medio del modelo_test es: {}'.format(rmse))
 
     mse_abs_test = abs(mse_test)
 
     #diff = abs(mse_abs_test - rmse)
 
-    df_aler = pd.DataFrame(future_forecast_pred.values,index = df_test.index,columns=['expected value'])
-    df_aler['step'] = df_test['puntos']
-    df_aler['real_value'] = df_test['valores']
+    df_aler = pd.DataFrame(forecast_pred10,index = df.index,columns=['expected value'])
+    df_aler['step'] = df['puntos']
+    df_aler['real_value'] = real_pred10
     
    
     #df_aler['diff_mse_test'] = diff
-    df_aler['mse'] = error
+    df_aler['mse'] = mse
     df_aler['rmse'] = rmse
     df_aler['mae'] = mean_absolute_error(list_test, future_forecast_pred)
     df_aler['anomaly_score'] = abs(df_aler['expected value'] - df_aler['real_value']) / df_aler['mae']
@@ -520,7 +575,7 @@ def anomaly_holt(lista_datos,desv_mse=0):
     
 
     engine_output['rmse'] = rmse
-    engine_output['mse'] = error
+    engine_output['mse'] = mse
     engine_output['mae'] = mean_absolute_error(list_test, future_forecast_pred)
     engine_output['present_status']=exists_anom_last_5
     engine_output['present_alerts']=df_aler_ult.fillna(0).to_dict(orient='record')
@@ -532,7 +587,11 @@ def anomaly_holt(lista_datos,desv_mse=0):
     df_future['value']=df_future.value.astype("float32")
     df_future['step']= np.arange( len(lista_datos),len(lista_datos)+5,1)
     engine_output['future'] = df_future.to_dict(orient='record')
-
+    #test_values = pd.DataFrame(future_forecast_pred.values,index = df_train.index,columns=['Prediction'])
+    test_values['step'] = test_values.index
+    engine_output['debug'] = test_values.to_dict(orient='record')
+    
+    
     return engine_output
 
 
@@ -649,16 +708,14 @@ def anomaly_LSTM(list_var,desv_mse=0):
 
     train_X = train_X.reshape((train_X.shape[0], 1, train_X.shape[1]))
     test_X = test_X.reshape((test_X.shape[0], 1, test_X.shape[1]))
-    print(train_X.shape, train_y.shape, test_X.shape, test_y.shape)
 
     model = Sequential()
-    model.add(LSTM(50, input_shape=(train_X.shape[1], train_X.shape[2])))
+    model.add(LSTM(30, input_shape=(train_X.shape[1], train_X.shape[2])))
     model.add(Dense(1))
     model.compile(loss='mae', optimizer='adam')
     # fit network
     
-    history = model.fit(train_X, train_y, epochs=50, batch_size=72, validation_data=(test_X, test_y), verbose=0, shuffle=False)
-    print ("modelo entrenado")
+    history = model.fit(train_X, train_y, epochs=30, batch_size=72, validation_data=(test_X, test_y), verbose=0, shuffle=False)
 
     # make a prediction
     yhat = model.predict(test_X)
@@ -800,23 +857,32 @@ def forecast_LSTM(list_var,num_fut):
     return (df_result)
 
 
+def merge_two_dicts(x, y):
+    z = x.copy()   # start with x's keys and values
+    z.update(y)    # modifies z with y's keys and values & returns None
+    return z
+
 def model_univariate(lista_datos,num_fut,desv_mse):
     engines_output={}
+    debug = {}
     
-    #try:
-        #engines_output['LSTM'] = anomaly_uni_LSTM(lista_datos,desv_mse)
-    #except Exception as e: 
-        #print(e)
-        #print ('ERROR: exception executing LSTM univariate')
+    try:
+        engines_output['LSTM'] = anomaly_uni_LSTM(lista_datos,desv_mse)
+        debug['LSTM'] = engines_output['LSTM']['debug']
+    except Exception as e: 
+        print(e)
+        print ('ERROR: exception executing LSTM univariate')
     
-    #try:
-        #engines_output['arima'] = anomaly_AutoArima(lista_datos,desv_mse)
-    #except  Exception as e: 
-        #print(e)
-        #print ('ERROR: exception executing Autoarima')
+    try:
+        engines_output['arima'] = anomaly_AutoArima(lista_datos,desv_mse)
+        debug['arima'] = engines_output['arima']['debug']
+    except  Exception as e: 
+        print(e)
+        print ('ERROR: exception executing Autoarima')
     
     try:
         engines_output['Holtwinters'] = anomaly_holt(lista_datos,desv_mse)
+        debug['Holtwinters'] = engines_output['Holtwinters']['debug']
     except  Exception as e: 
         print(e)
         print ('ERROR: exception executing Holtwinters')
@@ -837,7 +903,10 @@ def model_univariate(lista_datos,num_fut,desv_mse):
     
         
     print winner
-    return engines_output[winner]
+    
+    temp= {}
+    temp['debug']=debug
+    return merge_two_dicts(engines_output[winner] , temp)
     
  
  
