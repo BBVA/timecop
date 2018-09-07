@@ -33,6 +33,10 @@ from sklearn.utils import shuffle
 
 import math
 
+import pyflux as pf
+
+
+
 
 
 
@@ -150,11 +154,11 @@ def anomaly_uni_LSTM(lista_datos,desv_mse=0):
 
     print (len(test_X))
     print (len(test_Y))
-    lista_puntos = np.arange(len(test_X), len(test_X) + len(test_Y),1)
+    lista_puntos = np.arange(len(test_size), len(train_size) + len(test_size),1)
     
     #print (yhat_inverse)
     print (lista_puntos)
-    testing_data = pd.DataFrame(yhat_inverse,index =lista_puntos,columns=['Prediction'])
+    testing_data = pd.DataFrame(yhat_inverse,index =lista_puntos,columns=['expected value'])
 
     
     
@@ -249,7 +253,7 @@ def anomaly_uni_LSTM(lista_datos,desv_mse=0):
     df_future['step']= np.arange( len(lista_datos),len(lista_datos)+15,1)
     #print(df_future)
     engine_output['future'] = df_future.to_dict(orient='record')
-    testing_data.Prediction.astype("float64")
+    testing_data['excepted value'].astype("float64")
     testing_data['step']=testing_data.index
     testing_data.step.astype("float64")
 
@@ -857,6 +861,114 @@ def forecast_LSTM(list_var,num_fut):
     return (df_result)
 
 
+
+
+
+def anomaly_VAR(list_var):
+    df_var = pd.DataFrame()
+    
+    for i in range(len(list_var)):
+        df_var['var_{}'.format(i)] = list_var[i]
+        df_var['var_{}'.format(i)] = list_var[i]
+    
+    
+    tam_train = int(len(df_var)*0.7)
+    #print tam_train
+    df_train = df_var[:tam_train]
+    print('Tamanio train: {}'.format(df_train.shape))
+    df_test = df_var[tam_train:]
+    print('Tamanio test: {}'.format(df_test.shape))
+    
+    model = pf.VAR(df_train,lags=5)
+    x = model.fit()
+
+    #model.plot_z(list(range(0,6)),figsize=(15,5))
+    #model.plot_fit(figsize=(8,5))
+    #model.plot_predict_is(h=90, figsize=((8,5)))
+    #model.plot_predict(past_values=len(df_train), h=len(df_test), figsize=(8,5))
+    
+    future_forecast_pred = model.predict(len(df_test))
+    future_forecast_pred = future_forecast_pred[['var_0']]
+    
+    
+    list_test = df_test['var_0'].values
+    list_future_forecast_pred = future_forecast_pred['var_0'].values
+    
+    #mse_test = (list_future_forecast_pred - list_test)
+    #mse_abs_test = abs(mse_test)
+    
+    mse = mean_squared_error(list_test, list_future_forecast_pred)
+    print('El error medio del modelo_test es: {}'.format(mse))
+    rmse = np.sqrt(mse)
+    print('El root error medio del modelo_test es: {}'.format(rmse))
+    mae = mean_absolute_error(list_test, list_future_forecast_pred)
+    df_aler = pd.DataFrame()
+    
+    df_aler['real_value'] = list_test
+    df_aler['expected value'] = list_future_forecast_pred
+    df_aler['mse'] = mse
+    df_aler['puntos'] = future_forecast_pred.index
+    df_aler.set_index('puntos',inplace=True)
+    df_aler['mae'] = mae
+    
+    df_aler['anomaly_score'] = abs(df_aler['expected value']-df_aler['real_value'])/df_aler['mae']
+    
+    df_aler = df_aler[(df_aler['anomaly_score']> 2)]
+    
+    max = df_aler['anomaly_score'].max()
+    min = df_aler['anomaly_score'].min()
+    df_aler['anomaly_score']= ( df_aler['anomaly_score'] - min ) /(max - min)
+    
+    df_aler_ult = df_aler[:5]
+    df_aler_ult = df_aler_ult[(df_aler_ult.index==df_aler.index.max())|(df_aler_ult.index==((df_aler.index.max())-1))
+                             |(df_aler_ult.index==((df_aler.index.max())-2))|(df_aler_ult.index==((df_aler.index.max())-3))
+                             |(df_aler_ult.index==((df_aler.index.max())-4))]
+    if len(df_aler_ult) == 0:
+        exists_anom_last_5 = 'FALSE'
+    else:
+        exists_anom_last_5 = 'TRUE'
+    
+    max = df_aler_ult['anomaly_score'].max()
+    min = df_aler_ult['anomaly_score'].min()
+    print df_aler_ult
+    df_aler_ult['anomaly_score'] = ( df_aler_ult['anomaly_score'] - min ) /(max - min)
+    
+    #####forecast#####
+    
+    model_for = pf.VAR(df_var,lags=5)
+    x_for = model_for.fit()
+
+    #model.plot_z(list(range(0,6)),figsize=(15,5))
+    #model.plot_fit(figsize=(8,5))
+    
+    future_forecast_pred_for = model_for.predict(5)
+    future_forecast_pred_for=future_forecast_pred_for[['var_0']]
+    df_result_forecast = future_forecast_pred_for.reset_index()
+    df_result_forecast = df_result_forecast.rename(columns = {'index':'step'})
+
+    
+    
+    
+    
+    
+    print df_var.head(5)
+    print df_var.tail(5)
+    
+    engine_output={}
+    engine_output['rmse'] = rmse
+    engine_output['mse'] = mse
+    engine_output['mae'] = mae
+    engine_output['present_status']=exists_anom_last_5
+    engine_output['present_alerts']=df_aler_ult.to_dict(orient='record')
+    engine_output['past']=df_aler.to_dict(orient='record')
+    engine_output['engine']='VAR'
+    engine_output['future']= df_result_forecast.to_dict(orient='record')
+    
+    return (engine_output)
+
+
+
+
 def merge_two_dicts(x, y):
     z = x.copy()   # start with x's keys and values
     z.update(y)    # modifies z with y's keys and values & returns None
@@ -923,7 +1035,12 @@ def model_multivariate(list_var,num_fut,desv_mse):
     except   Exception as e: 
         print(e)
         print ('ERROR: exception executing LSTM')
-    
+    try:
+        engines_output['VAR'] = anomaly_VAR(list_var)
+        print (engines_output['VAR'])
+    except   Exception as e: 
+        print(e)
+        print ('ERROR: exception executing VAR')    
     best_mae=999999999
     winner='LSTM'
     print ('el tamanio es ')
@@ -933,5 +1050,5 @@ def model_multivariate(list_var,num_fut,desv_mse):
             best_rmse=value['mae']
             winner=key
         
-    print winner
+    print "el ganador es " + winner
     return engines_output[winner]
