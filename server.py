@@ -1,16 +1,8 @@
-from flask import request
-
-from flask import Flask, jsonify
-
+from flask import request, Flask, jsonify, abort
 from flask_cors import CORS
 
+import engines.functions_timeseries as ft
 
-import numpy as np
-import pandas as pd
-from engines.functions_timeseries import *
-
-
-from flask import abort
 app = Flask(__name__)
 CORS(app)
 
@@ -27,10 +19,7 @@ def univariate_engine():
     num_fut = 5
     desv_mse = 0
     
-
-
-    #dict_Anomaly_AutoArima,dict_last_5_AutoArima,dict_fore_AutoArima,dict_Anomaly_holt,dict_last_5_holt,dict_fore_holt = model_univariate(lista,num_fut,desv_mse)
-    salida = model_univariate(lista,num_fut,desv_mse)
+    salida = ft.model_univariate(lista,num_fut,desv_mse)
     return jsonify(salida), 201
 
 
@@ -44,7 +33,6 @@ def multivariate_engine():
     items = timedata['timeseries']
     list_var=[]
     for item in items:
-        #print (data)
         data = item['data']
         list_var.append(data)
         
@@ -53,12 +41,8 @@ def multivariate_engine():
     num_fut = 5
     desv_mse = 0
     
-
-
-    #dict_Anomaly_AutoArima,dict_last_5_AutoArima,dict_fore_AutoArima,dict_Anomaly_holt,dict_last_5_holt,dict_fore_holt = model_univariate(lista,num_fut,desv_mse)
-    salida = model_multivariate(list_var,num_fut,desv_mse)
+    salida = ft.model_multivariate(list_var,num_fut,desv_mse)
     print(salida)
-    #return json, 201
     return jsonify(salida), 201
 
 
