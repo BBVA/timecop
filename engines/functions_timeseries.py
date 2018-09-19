@@ -3,6 +3,7 @@ from var import anomaly_VAR
 from holtwinter import anomaly_holt
 from auto_arima import anomaly_AutoArima
 from lstm import anomaly_LSTM, anomaly_uni_LSTM
+from keras_model import anomaly_uni_Keras
 
 def model_univariate(lista_datos,num_fut,desv_mse):
     engines_output={}
@@ -15,6 +16,13 @@ def model_univariate(lista_datos,num_fut,desv_mse):
         print(e)
         print ('ERROR: exception executing LSTM univariate')
     
+    try:
+        engines_output['Keras_model'] = anomaly_uni_Keras(lista_datos,desv_mse)
+        debug['Keras_model'] = engines_output['Keras_model']['debug']
+    except Exception as e: 
+        print(e)
+        print ('ERROR: exception executing Keras_model univariate')
+
     try:
         engines_output['arima'] = anomaly_AutoArima(lista_datos,desv_mse)
         debug['arima'] = engines_output['arima']['debug']
