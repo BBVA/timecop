@@ -35,7 +35,7 @@ def anomaly_uni_LSTM(lista_datos,desv_mse=0):
 
     #############new engine LSTM
     model = Sequential()
-    model.add(LSTM(100, input_shape=(train_X.shape[1], train_X.shape[2])))
+    model.add(LSTM(25, input_shape=(train_X.shape[1], train_X.shape[2])))
     model.add(Dense(1))
     model.compile(loss='mse', optimizer='adam')
     history = model.fit(train_X, train_Y, epochs=300, batch_size=100, validation_data=(test_X, test_Y), verbose=0, shuffle=False)
