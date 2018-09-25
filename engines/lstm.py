@@ -21,7 +21,7 @@ def anomaly_uni_LSTM(lista_datos,desv_mse=0):
 
     train_size = int(len(dataset) * TRAIN_SIZE)
     test_size = len(dataset) - train_size
-    train, test = dataset[0:train_size, :], dataset[train_size:len(dataset), :]
+    train, test = dataset[0:train_size, :], dataset[train_size-2:len(dataset), :]
 
     # Create test and training sets for one-step-ahead regression.
     window_size = 1
@@ -42,13 +42,13 @@ def anomaly_uni_LSTM(lista_datos,desv_mse=0):
 
     yhat = model.predict(test_X)
     
-    
+    print ("estoy")
     yhat_inverse = scaler.inverse_transform(yhat.reshape(-1, 1))
     testY_inverse = scaler.inverse_transform(test_Y.reshape(-1, 1))
 
     print (len(test_X))
     print (len(test_Y))
-    lista_puntos = np.arange(len(test_size), len(train_size) + len(test_size),1)
+    lista_puntos = np.arange(train_size, train_size + test_size,1)
     
     print (lista_puntos)
     testing_data = pd.DataFrame(yhat_inverse,index =lista_puntos,columns=['expected value'])
@@ -57,6 +57,7 @@ def anomaly_uni_LSTM(lista_datos,desv_mse=0):
     mse=mean_squared_error(testY_inverse, yhat_inverse)
     mae = mean_absolute_error(testY_inverse, yhat_inverse)
    
+    print ("pasa")
     df_aler = pd.DataFrame()
     test=scaler.inverse_transform([test_Y])
     
@@ -110,10 +111,11 @@ def anomaly_uni_LSTM(lista_datos,desv_mse=0):
     df_future['value']=df_future.value.astype("float64")
     df_future['step']= np.arange( len(lista_datos),len(lista_datos)+15,1)
     engine_output['future'] = df_future.to_dict(orient='record')
-    testing_data['excepted value'].astype("float64")
+    print ("llegamos hasta aqui")
+    #testing_data['excepted value'].astype("float64")
     testing_data['step']=testing_data.index
-    testing_data.step.astype("float64")
-
+    #testing_data.step.astype("float64")
+    print ("llegamos hasta aqui2")
     engine_output['debug'] = testing_data.to_dict(orient='record')
 
     return (engine_output)

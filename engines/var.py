@@ -2,25 +2,30 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_squared_error,mean_absolute_error
 import pyflux as pf
+import helpers as h
 
 
 
-def anomaly_VAR(list_var):
-    df_var = pd.DataFrame()
+
+def anomaly_VAR(lista_datos):
+    lista_puntos = np.arange(0, len(lista_datos),1)
+
+
+    df = pd.DataFrame()
+    df['valores'] = lista_datos
+
     
-    for i in range(len(list_var)):
-        df_var['var_{}'.format(i)] = list_var[i]
-        df_var['var_{}'.format(i)] = list_var[i]
-    
-    
-    tam_train = int(len(df_var)*0.7)
-    df_train = df_var[:tam_train]
-    print('Train shape: {}'.format(df_train.shape))
-    df_test = df_var[tam_train:]
-    print('Test shape: {}'.format(df_test.shape))
-    
+    tam_train = int(len(df)*0.7)
+    #print tam_train
+    df_train = df[:tam_train]
+    print('Tamanio train: {}'.format(df_train.shape))
+    df_test = df[tam_train:]
+    print('Tamanio test: {}'.format(df_test.shape))
+
     model = pf.VAR(df_train,lags=5)
+    print ("modelo entrenado")
     x = model.fit()
+    print ("modelo entrenado2")
     
     future_forecast_pred = model.predict(len(df_test))
     future_forecast_pred = future_forecast_pred[['var_0']]

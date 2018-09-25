@@ -21,6 +21,12 @@ def model_univariate(lista_datos,num_fut,desv_mse):
     except  Exception as e: 
         print(e)
         print ('ERROR: exception executing Autoarima')
+    try:
+        engines_output['VAR'] = anomaly_VAR(lista_datos)
+        debug['VAR'] = engines_output['VAR']['debug']
+    except  Exception as e: 
+        print(e)
+        print ('ERROR: exception executing VAR')
     
     try:
         engines_output['Holtwinters'] = anomaly_holt(lista_datos,desv_mse)
