@@ -1,5 +1,5 @@
 from helpers import merge_two_dicts
-from var import anomaly_VAR
+from var import anomaly_VAR, univariate_anomaly_VAR
 from holtwinter import anomaly_holt
 from auto_arima import anomaly_AutoArima
 from lstm import anomaly_LSTM, anomaly_uni_LSTM
@@ -22,12 +22,11 @@ def model_univariate(lista_datos,num_fut,desv_mse):
         print(e)
         print ('ERROR: exception executing Autoarima')
     try:
-        engines_output['VAR'] = anomaly_VAR(lista_datos)
+        engines_output['VAR'] = univariate_anomaly_VAR(lista_datos)
         debug['VAR'] = engines_output['VAR']['debug']
     except  Exception as e: 
         print(e)
         print ('ERROR: exception executing VAR')
-    
     try:
         engines_output['Holtwinters'] = anomaly_holt(lista_datos,desv_mse)
         debug['Holtwinters'] = engines_output['Holtwinters']['debug']
