@@ -39,8 +39,8 @@ def model_univariate(lista_datos,num_fut,desv_mse):
     print ('The size is: ')
     print (len(engines_output))
     for key, value in engines_output.iteritems():
-        print (value['mae'])
-        print(key)
+        print (key + "   " + str(value['mae']))
+        
         if value['mae'] < best_mae:
             best_mae=value['mae']
             winner=key

@@ -7,7 +7,6 @@ import helpers as h
 
 
 
-
 def univariate_anomaly_VAR(lista_datos):
     lista_puntos = np.arange(0, len(lista_datos),1)
 
@@ -23,7 +22,7 @@ def univariate_anomaly_VAR(lista_datos):
     df_test = df[tam_train:]
     print('Tamanio test: {}'.format(df_test.shape))
 
-    model = pf.VAR(df_train,lags=12)
+    model = pf.VAR(df_train,lags=15)
     x = model.fit()
 
     #model.plot_z(list(range(0,6)),figsize=(15,5))
@@ -46,7 +45,7 @@ def univariate_anomaly_VAR(lista_datos):
     print('El root error medio del modelo_test es: {}'.format(rmse))
     mae = mean_absolute_error(list_test, list_future_forecast_pred)
     
-    test_values = pd.DataFrame(future_forecast_pred.values,index = df_test.index,columns=['expected value'])
+    
     
     df_aler = pd.DataFrame()
     df_aler['real_value'] = list_test
@@ -103,12 +102,12 @@ def univariate_anomaly_VAR(lista_datos):
     engine_output['past']=df_aler.to_dict(orient='record')
     engine_output['engine']='VAR'
     engine_output['future']= df_result_forecast.to_dict(orient='record')
+    test_values = pd.DataFrame(future_forecast_pred.values,index = df_test.index,columns=['expected value'])
     test_values['step'] = test_values.index
     engine_output['debug'] = test_values.to_dict(orient='record')
     
     
     return (engine_output)
-
 
 
 def anomaly_VAR(lista_datos):

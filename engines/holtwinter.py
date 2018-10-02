@@ -21,53 +21,55 @@ def anomaly_holt(lista_datos,desv_mse=0):
     fit_forecast_pred_full = fit_stepwise_model.fittedvalues
 
     future_forecast_pred = fit_stepwise_model.forecast(len(df_test['valores']))
-    test_values = pd.DataFrame(future_forecast_pred.values,index = df_test.index,columns=['expected value'])
 
 
-    ##### sliding windows
+    ###### sliding windows
     
-    ventanas=h.windows(lista_datos,10)
+    #ventanas=h.windows(lista_datos,10)
     
-    print(ventanas[0])
-    training_data=[]
-    count=0
+    #print(ventanas[0])
+    #training_data=[]
+    #count=0
     
-    forecast_pred10 =[]
-    real_pred10=[]
-    for slot in ventanas:
-        if count != 0:    
-            stepwise_model =  ExponentialSmoothing(training_data,seasonal_periods=1 )
-            fit_stepwise_model = stepwise_model.fit()
+    #forecast_pred10 =[]
+    #real_pred10=[]
+    #for slot in ventanas:
+        #if count != 0:    
+            #stepwise_model =  ExponentialSmoothing(training_data,seasonal_periods=1 )
+            #fit_stepwise_model = stepwise_model.fit()
 
 
-            future_forecast_pred = fit_stepwise_model.forecast(len(slot))
-            forecast_pred10.extend(future_forecast_pred)
-            real_pred10.extend(slot)
-            training_data.extend(slot)
+            #future_forecast_pred = fit_stepwise_model.forecast(len(slot))
+            #forecast_pred10.extend(future_forecast_pred)
+            #real_pred10.extend(slot)
+            #training_data.extend(slot)
             
-        else:
-            training_data.extend(slot)
-            forecast_pred10.extend(slot)
-            real_pred10.extend(slot)
-            count=1
+        #else:
+            #training_data.extend(slot)
+            #forecast_pred10.extend(slot)
+            #real_pred10.extend(slot)
+            #count=1
 
-    print ('Wndows prediction')
-    #print ( forecast_pred10)
-    #print ( real_pred10)
+    #print ('Wndows prediction')
+    ##print ( forecast_pred10)
+    ##print ( real_pred10)
     
-    print ('Wndows mae '  + str(mean_absolute_error(forecast_pred10, real_pred10)))
+    #print ('Wndows mae '  + str(mean_absolute_error(forecast_pred10, real_pred10)))
     
         ####################ENGINE START
 
     ##########GRID to find seasonal n_periods
-    mae_period = 99999
+    mae_period = 99999999
     best_period=0
-    for period in range(2,50):
+    for period in range(2,20):
         print ("Period: " + str(period))
-        stepwise_model =  ExponentialSmoothing(df_train['valores'],seasonal_periods=12 ,trend='add', seasonal='add', )
+        stepwise_model =  ExponentialSmoothing(df_train['valores'],seasonal_periods=period ,trend='add', seasonal='add', )
         fit_stepwise_model = stepwise_model.fit()
 
         future_forecast_pred = fit_stepwise_model.forecast(len(df_test['valores']))
+        #print ("valores")
+        #print future_forecast_pred
+        
         mae_temp = mean_absolute_error(future_forecast_pred.values,df_test['valores'].values)
         if mae_temp < mae_period:
             best_period=period
@@ -76,10 +78,18 @@ def anomaly_holt(lista_datos,desv_mse=0):
             print ("mae:" + str(mae_temp))
     print ("######best mae is " + str(mae_period) + " with the period " + str(best_period))
     
+    stepwise_model =  ExponentialSmoothing(df_train['valores'],seasonal_periods=best_period ,trend='add', seasonal='add', )
+    fit_stepwise_model = stepwise_model.fit()
+
+    future_forecast_pred = fit_stepwise_model.forecast(len(df_test['valores']))
+    print (future_forecast_pred.values)
+
+    
 
     list_test = df_test['valores'].values
     mse_test = (future_forecast_pred - list_test)
-    print (future_forecast_pred.values)
+    test_values = pd.DataFrame(future_forecast_pred,index = df_test.index,columns=['expected value'])
+
     
     print(list_test)
 
@@ -91,9 +101,9 @@ def anomaly_holt(lista_datos,desv_mse=0):
 
     mse_abs_test = abs(mse_test)
 
-    df_aler = pd.DataFrame(forecast_pred10,index = df.index,columns=['expected value'])
+    df_aler = pd.DataFrame(future_forecast_pred,index = df.index,columns=['expected value'])
     df_aler['step'] = df['puntos']
-    df_aler['real_value'] = real_pred10
+    df_aler['real_value'] = df_test['valores']
     df_aler['mse'] = mse
     df_aler['rmse'] = rmse
     df_aler['mae'] = mean_absolute_error(list_test, future_forecast_pred)
@@ -119,7 +129,7 @@ def anomaly_holt(lista_datos,desv_mse=0):
  
     df_aler_ult['anomaly_score']= ( df_aler_ult['anomaly_score'] - min ) /(max - min)
     print ("Anomaly finished. Start forecasting")
-    stepwise_model1 =  ExponentialSmoothing(df['valores'],seasonal_periods=len(df['valores']) , seasonal='add')
+    stepwise_model1 =  ExponentialSmoothing(df['valores'],seasonal_periods=best_period , seasonal='add')
     print ("Pass the training")
     fit_stepwise_model1 = stepwise_model1.fit()
     future_forecast_pred1 = fit_stepwise_model1.forecast(5)
@@ -139,7 +149,12 @@ def anomaly_holt(lista_datos,desv_mse=0):
     df_future['step']= np.arange( len(lista_datos),len(lista_datos)+5,1)
     engine_output['future'] = df_future.to_dict(orient='record')
     test_values['step'] = test_values.index
+    print ("debug de Holtwinters")
+    print (test_values)
     engine_output['debug'] = test_values.to_dict(orient='record')
+    
+    print ("la prediccion es")
+    print df_future
     
     return engine_output
 

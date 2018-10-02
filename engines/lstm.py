@@ -8,6 +8,30 @@ from keras.layers.core import Dense
 import math
 import helpers as h
 
+
+def moving_test_window_preds(n_future_preds):
+
+    ''' n_future_preds - Represents the number of future predictions we want to make
+                         This coincides with the number of windows that we will move forward
+                         on the test data
+    '''
+    preds_moving = []                                    # Use this to store the prediction made on each test window
+    moving_test_window = [test_X[0,:].tolist()]          # Creating the first test window
+    moving_test_window = np.array(moving_test_window)    # Making it an numpy array
+    
+    for i in range(n_future_preds):
+        preds_one_step = model.predict(moving_test_window) # Note that this is already a scaled prediction so no need to rescale this
+        preds_moving.append(preds_one_step[0,0]) # get the value from the numpy 2D array and append to predictions
+        preds_one_step = preds_one_step.reshape(1,1,1) # Reshaping the prediction to 3D array for concatenation with moving test window
+        moving_test_window = np.concatenate((moving_test_window[:,1:,:], preds_one_step), axis=1) # This is the new moving test window, where the first element from the window has been removed and the prediction  has been appended to the end
+        
+    preds_moving = scaler.inverse_transform(preds_moving)
+    
+    return preds_moving
+
+
+
+
 def anomaly_uni_LSTM(lista_datos,desv_mse=0):
     temp= pd.DataFrame(lista_datos,columns=['values'])
     data_raw = temp.values.astype("float32")
@@ -56,6 +80,9 @@ def anomaly_uni_LSTM(lista_datos,desv_mse=0):
     rmse = math.sqrt(mean_squared_error(testY_inverse, yhat_inverse))
     mse=mean_squared_error(testY_inverse, yhat_inverse)
     mae = mean_absolute_error(testY_inverse, yhat_inverse)
+
+
+
    
     print ("pasa")
     df_aler = pd.DataFrame()
@@ -94,6 +121,9 @@ def anomaly_uni_LSTM(lista_datos,desv_mse=0):
     pred_scaled =model.predict(forecast_X)
     pred = scaler.inverse_transform(pred_scaled)
     
+    print ("el tamano de la preddicion")
+    print (len(pred))
+
     print(pred)
     print ('prediccion')
 
@@ -106,10 +136,10 @@ def anomaly_uni_LSTM(lista_datos,desv_mse=0):
     engine_output['present_status']=exists_anom_last_5
     engine_output['present_alerts']=df_aler_ult.fillna(0).to_dict(orient='record')
     engine_output['past']=df_aler.fillna(0).to_dict(orient='record')
-    engine_output['engine']='LTSM'
-    df_future= pd.DataFrame(pred[:15],columns=['value'])
+    engine_output['engine']='LSTM'
+    df_future= pd.DataFrame(pred[len(pred) - 5:],columns=['value'])
     df_future['value']=df_future.value.astype("float64")
-    df_future['step']= np.arange( len(lista_datos),len(lista_datos)+15,1)
+    df_future['step']= np.arange( len(lista_datos),len(lista_datos)+5,1)
     engine_output['future'] = df_future.to_dict(orient='record')
     print ("llegamos hasta aqui")
     #testing_data['excepted value'].astype("float64")
