@@ -79,8 +79,11 @@ def model_multivariate(list_var,num_fut,desv_mse):
     print ('The size is ')
     print (len(engines_output))
     for key, value in engines_output.iteritems():
+        print (key)
+        print(str(value['mae']))
         if value['mae'] < best_mae:
-            best_rmse=value['mae']
+            print (key + " " + str(value['mae']) + " best:" + str(best_mae) )
+            best_mae=value['mae']
             winner=key
         
     print "el ganador es " + winner
