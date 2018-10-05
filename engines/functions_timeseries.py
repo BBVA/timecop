@@ -15,12 +15,12 @@ def model_univariate(lista_datos,num_fut,desv_mse):
         print(e)
         print ('ERROR: exception executing LSTM univariate')
     
-    try:
-        engines_output['arima'] = anomaly_AutoArima(lista_datos,desv_mse)
-        debug['arima'] = engines_output['arima']['debug']
-    except  Exception as e: 
-        print(e)
-        print ('ERROR: exception executing Autoarima')
+    #try:
+        #engines_output['arima'] = anomaly_AutoArima(lista_datos,desv_mse)
+        #debug['arima'] = engines_output['arima']['debug']
+    #except  Exception as e: 
+        #print(e)
+        #print ('ERROR: exception executing Autoarima')
     try:
         engines_output['VAR'] = univariate_anomaly_VAR(lista_datos)
         debug['VAR'] = engines_output['VAR']['debug']
