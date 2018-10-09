@@ -61,15 +61,18 @@ def model_multivariate(list_var,num_fut,desv_mse):
     
     
     engines_output={}
+    debug = {}
     
     try:
         engines_output['LSTM'] = anomaly_LSTM(list_var,desv_mse)
+        debug['LSTM'] = engines_output['LSTM']['debug']
         print (engines_output['LSTM'])
     except   Exception as e: 
         print(e)
         print ('ERROR: exception executing LSTM')
     try:
         engines_output['VAR'] = anomaly_VAR(list_var)
+        debug['VAR'] = engines_output['VAR']['debug']
         print (engines_output['VAR'])
     except   Exception as e: 
         print(e)
@@ -78,6 +81,7 @@ def model_multivariate(list_var,num_fut,desv_mse):
     winner='LSTM'
     print ('The size is ')
     print (len(engines_output))
+    print (debug)
     for key, value in engines_output.iteritems():
         print (key)
         print(str(value['mae']))
@@ -87,4 +91,6 @@ def model_multivariate(list_var,num_fut,desv_mse):
             winner=key
         
     print "el ganador es " + winner
-    return engines_output[winner]
+    temp= {}
+    temp['debug']=debug
+    return merge_two_dicts(engines_output[winner] , temp)

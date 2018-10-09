@@ -118,6 +118,7 @@ def anomaly_VAR(list_var):
         df_var['var_{}'.format(i)] = list_var[i]
     
     
+    df_var.rename(columns = {df_var.columns[-1]:'expected value'},inplace=True)
     tam_train = int(len(df_var)*0.7)
     #print tam_train
     df_train = df_var[:tam_train]
@@ -134,12 +135,12 @@ def anomaly_VAR(list_var):
     #model.plot_predict_is(h=90, figsize=((8,5)))
     #model.plot_predict(past_values=len(df_train), h=len(df_test), figsize=(8,5))
     
+
     future_forecast_pred = model.predict(len(df_test))
-    future_forecast_pred = future_forecast_pred[['var_0']]
+    future_forecast_pred = future_forecast_pred[['expected value']]
     
-    
-    list_test = df_test['var_0'].values
-    list_future_forecast_pred = future_forecast_pred['var_0'].values
+    list_test = df_test['expected value'].values
+    list_future_forecast_pred = future_forecast_pred['expected value'].values
     
     #mse_test = (list_future_forecast_pred - list_test)
     #mse_abs_test = abs(mse_test)
@@ -177,9 +178,8 @@ def anomaly_VAR(list_var):
     
     max = df_aler_ult['anomaly_score'].max()
     min = df_aler_ult['anomaly_score'].min()
-    print df_aler_ult
     df_aler_ult['anomaly_score'] = ( df_aler_ult['anomaly_score'] - min ) /(max - min)
-    
+    df_aler_ult = df_aler_ult.fillna(0)
     #####forecast#####
     
     model_for = pf.VAR(df_var,lags=5)
@@ -189,7 +189,7 @@ def anomaly_VAR(list_var):
     #model.plot_fit(figsize=(8,5))
     
     future_forecast_pred_for = model_for.predict(5)
-    future_forecast_pred_for = future_forecast_pred_for[['var_0']]
+    future_forecast_pred_for = future_forecast_pred_for[['expected value']]
     
     df_result_forecast = future_forecast_pred_for.reset_index()
     df_result_forecast = df_result_forecast.rename(columns = {'index':'step'})
