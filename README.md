@@ -26,6 +26,12 @@ To use TIMECOP engine you will need to send a univariate or multivariate time se
 
 ![alt text](https://raw.githubusercontent.com/BBVA/timecop/master/doc/img/flow_chart.jpg)
 
+## Web test page
+
+to use timecop there is another option, a web page that you can use locally and test timecop from CSV files before integrating it into any application
+
+![alt text](https://raw.githubusercontent.com/BBVA/timecop/master/doc/img/Webpage.png)
+
 
 ## INVOKE
 
