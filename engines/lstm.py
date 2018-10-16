@@ -8,37 +8,22 @@ from keras.layers.recurrent import LSTM
 from keras.layers.core import Dense
 import math
 import helpers as h
-
-
-def moving_test_window_preds(n_future_preds):
-
-    ''' n_future_preds - Represents the number of future predictions we want to make
-                         This coincides with the number of windows that we will move forward
-                         on the test data
-    '''
-    preds_moving = []                                    # Use this to store the prediction made on each test window
-    moving_test_window = [test_X[0,:].tolist()]          # Creating the first test window
-    moving_test_window = np.array(moving_test_window)    # Making it an numpy array
-    
-    for i in range(n_future_preds):
-        preds_one_step = model.predict(moving_test_window) # Note that this is already a scaled prediction so no need to rescale this
-        preds_moving.append(preds_one_step[0,0]) # get the value from the numpy 2D array and append to predictions
-        preds_one_step = preds_one_step.reshape(1,1,1) # Reshaping the prediction to 3D array for concatenation with moving test window
-        moving_test_window = np.concatenate((moving_test_window[:,1:,:], preds_one_step), axis=1) # This is the new moving test window, where the first element from the window has been removed and the prediction  has been appended to the end
-        
-    preds_moving = scaler.inverse_transform(preds_moving)
-    
-    return preds_moving
+from keras.layers import Dropout
+from keras.layers.normalization import BatchNormalization
 
 
 
 
-def anomaly_uni_LSTM(lista_datos,desv_mse=0):
+
+
+def anomaly_uni_LSTM(lista_datos,num_fut,desv_mse=0):
     temp= pd.DataFrame(lista_datos,columns=['values'])
     data_raw = temp.values.astype("float32")
 
     scaler = MinMaxScaler(feature_range = (0, 1))
     dataset = scaler.fit_transform(data_raw)
+    print ("dataset")
+    print (dataset)
 
 
     print(data_raw)
@@ -58,6 +43,20 @@ def anomaly_uni_LSTM(lista_datos,desv_mse=0):
     test_X = np.reshape(test_X, (test_X.shape[0], 1, test_X.shape[1]))
     forecast_X = np.reshape(forecast_X, (forecast_X.shape[0], 1, forecast_X.shape[1]))
 
+
+    print ("train _X") 
+    print(train_X)
+    print ("train _Y") 
+    print(train_Y)
+    
+    print ("test_X")
+    print (test_X)
+    print ("test_Y")
+    print (test_Y)
+
+
+    print ("forecast X")
+    print (forecast_X)
     #############new engine LSTM
     model = Sequential()
     model.add(LSTM(100, input_shape=(train_X.shape[1], train_X.shape[2])))
@@ -73,6 +72,27 @@ def anomaly_uni_LSTM(lista_datos,desv_mse=0):
 
     print (len(test_X))
     print (len(test_Y))
+    
+    
+    
+    
+    
+    #############prediccion LSTM
+    salida = forecast_X
+    for contador in range(0,num_fut):
+        print ("entra " + str(contador))
+        preds_one_step = model.predict(salida)   
+        # supongo que esta en tamano correcto
+        print ("prediccion total" + str(len(preds_one_step)) + "forecast X" + str(len(forecast_X)) + str(len(dataset)) )
+        #print (preds_one_step)
+        print ( "punto predicho" + str(preds_one_step[-1] ))
+        salida = np.append(salida,preds_one_step[-1])
+        salida = salida.reshape((salida.shape[0],1,1))
+    
+    
+    print ("forecast complete"+ str(len(salida)))
+    print (salida)
+    
     lista_puntos = np.arange(train_size, train_size + test_size,1)
     
     print (lista_puntos)
@@ -119,15 +139,9 @@ def anomaly_uni_LSTM(lista_datos,desv_mse=0):
  
     df_aler_ult['anomaly_score']= ( df_aler_ult['anomaly_score'] - min ) /(max - min)
 
-    pred_scaled =model.predict(forecast_X)
-    pred = scaler.inverse_transform(pred_scaled)
+    print (salida)
+    pred = scaler.inverse_transform(salida.reshape(-1, 1))
     
-    print ("el tamano de la preddicion")
-    print (len(pred))
-
-    print(pred)
-    print ('prediccion')
-
     engine_output={}
 
 
@@ -138,9 +152,9 @@ def anomaly_uni_LSTM(lista_datos,desv_mse=0):
     engine_output['present_alerts']=df_aler_ult.fillna(0).to_dict(orient='record')
     engine_output['past']=df_aler.fillna(0).to_dict(orient='record')
     engine_output['engine']='LSTM'
-    df_future= pd.DataFrame(pred[len(pred) - 5:],columns=['value'])
+    df_future= pd.DataFrame(pred[len(pred)-num_fut:],columns=['value'])
     df_future['value']=df_future.value.astype("float64")
-    df_future['step']= np.arange( len(lista_datos),len(lista_datos)+5,1)
+    df_future['step']= np.arange( len(lista_datos),len(lista_datos)+num_fut,1)
     engine_output['future'] = df_future.to_dict(orient='record')
     print ("llegamos hasta aqui")
     #testing_data['excepted value'].astype("float64")
@@ -150,6 +164,7 @@ def anomaly_uni_LSTM(lista_datos,desv_mse=0):
     engine_output['debug'] = testing_data.to_dict(orient='record')
 
     return (engine_output)
+
 
 def series_to_supervised(data, n_in=1, n_out=1, dropnan=True):
     n_vars = 1 if type(data) is list else data.shape[1]
@@ -179,7 +194,7 @@ def series_to_supervised(data, n_in=1, n_out=1, dropnan=True):
 
 
 
-def anomaly_LSTM(list_var,desv_mse=0):
+def anomaly_LSTM(list_var,num_fut,desv_mse=0):
     df_var = pd.DataFrame()
     for i in range(len(list_var)):
         df_var['var_{}'.format(i)] = list_var[i]
@@ -205,11 +220,25 @@ def anomaly_LSTM(list_var,desv_mse=0):
 
 
     model = Sequential()
+
     model.add(LSTM(30, input_shape=(train_X.shape[1], train_X.shape[2]),return_sequences=True))
+    model.add(Dropout(0.2))
+    model.add(BatchNormalization())
+
+    model.add(LSTM(30,return_sequences=True))
+    model.add(Dropout(0.2))
+    model.add(BatchNormalization())
+
     model.add(LSTM(30))
-    #model.add((50))
-    model.add(Dense(1))
+    model.add(Dropout(0.2))
+    model.add(BatchNormalization())
+
+    model.add(Dense(32,activation='relu'))
+    model.add(Dropout(0.2))
+
+    model.add(Dense(1,activation='sigmoid'))
     model.compile(loss='mae', optimizer='adam')
+    
     # fit network
     history = model.fit(train_X, train_y, epochs=50, batch_size=72, validation_data=(test_X, test_y), shuffle=False)
 
@@ -316,15 +345,29 @@ def anomaly_LSTM(list_var,desv_mse=0):
     test1_X = test1_X.reshape((test1_X.shape[0], 1, test1_X.shape[1]))
 
     model = Sequential()
-    model.add(LSTM(50, input_shape=(test1_X.shape[1], test1_X.shape[2]),return_sequences=True))
-    model.add(LSTM(50))
-    #model.add(LSTM(50))
-    model.add(Dense(1))
+
+    model.add(LSTM(30, input_shape=(test1_X.shape[1], test1_X.shape[2]),return_sequences=True))
+    model.add(Dropout(0.2))
+    model.add(BatchNormalization())
+
+    model.add(LSTM(30,return_sequences=True))
+    model.add(Dropout(0.2))
+    model.add(BatchNormalization())
+
+    model.add(LSTM(30))
+    model.add(Dropout(0.2))
+    model.add(BatchNormalization())
+
+    model.add(Dense(32,activation='relu'))
+    model.add(Dropout(0.2))
+
+    model.add(Dense(1,activation='sigmoid'))
     model.compile(loss='mae', optimizer='adam')
+
     # fit network
     history = model.fit(test1_X, test1_y, epochs=50, batch_size=72, verbose=0, shuffle=False)
 
-    num_fut=5
+    num_fut=num_fut
     len_fore = len(test1_X) - num_fut
     fore = test1_X[len_fore:]
     yhat_fore = model.predict(fore)
@@ -372,32 +415,14 @@ def anomaly_LSTM(list_var,desv_mse=0):
     return (engine_output)
 
 
-def forecast_LSTM(list_var,num_fut):
-    
-    df_var = pd.DataFrame()
-    
-    for i in range(len(list_var)):
-        df_var['var_{}'.format(i)] = list_var[i]
-    
-    values = df_var.values
 
-    test_X, test_y = values[:, :-1], values[:, -1]
 
-    test_X = test_X.reshape((test_X.shape[0], 1, test_X.shape[1]))
+
+#list_var=[5938,6925,4353,6855,6216,7061,4417,7505,6778,8169,5290,7710,6213,7952,5476,7990,7747,8908,5369,7794,7543,8533,5564,6997,6678,7730,4790,6027,5877,7413,4459,5966,5305,6238,3689,5146,4799,6044,3695,4795,4147,5254,2679,3428,3635,5391,3142,3986,3807,4732,2513,3834,3133,4405]
+
+#num_fut=10
+#aa = anomaly_uni_LSTM(list_var,num_fut)
+#print aa
+
+
     
-    model = Sequential()
-    model.add(LSTM(50, input_shape=(test_X.shape[1], test_X.shape[2])))
-    model.add(Dense(1))
-    model.compile(loss='mae', optimizer='adam')
-    # fit network
-    
-    history = model.fit(test_X, test_y, epochs=50, batch_size=72, verbose=0, shuffle=False)
-    
-    len_fore = len(test_X) - num_fut
-    fore = test_X[len_fore:]
-    yhat = model.predict(fore)
-    
-    lista_result = np.arange(len(test_X), (len(test_X)+num_fut),1)
-    df_result = pd.DataFrame({'puntos':lista_result, 'valores':yhat[:,0]})
-    df_result.set_index('puntos',inplace=True)
-    return (df_result)

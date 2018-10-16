@@ -16,7 +16,8 @@ def univariate_engine():
     timedata = request.get_json()
     lista=timedata['data']
     
-    num_fut = 5
+    num_fut = int(timedata.get('num_future', 5))
+
     desv_mse = 0
     
     salida = ft.model_univariate(lista,num_fut,desv_mse)
@@ -38,7 +39,8 @@ def multivariate_engine():
         
     list_var.append(timedata['main'])
     
-    num_fut = 5
+    num_fut = int(timedata.get('num_future', 5))
+
     desv_mse = 0
     
     salida = ft.model_multivariate(list_var,num_fut,desv_mse)

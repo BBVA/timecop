@@ -6,8 +6,7 @@ import helpers as h
 
 
 
-
-def univariate_anomaly_VAR(lista_datos):
+def univariate_anomaly_VAR(lista_datos,num_fut):
     lista_puntos = np.arange(0, len(lista_datos),1)
 
 
@@ -21,26 +20,63 @@ def univariate_anomaly_VAR(lista_datos):
     print('Tamanio train: {}'.format(df_train.shape))
     df_test = df[tam_train:]
     print('Tamanio test: {}'.format(df_test.shape))
+    
+    mae_period = 99999999
+    best_lag=0
+    lags = int(round(len(df_train)/2))
+    for lag in range(lags):
+        model = pf.VAR(df_train,lags=lag)
+        x = model.fit()
 
-    model = pf.VAR(df_train,lags=15)
+    
+        future_forecast_pred = model.predict(len(df_test))
+        future_forecast_pred = future_forecast_pred[['valores']]
+
+        list_test = df_test['valores'].values
+        list_future_forecast_pred = future_forecast_pred['valores'].values
+
+        #pyplot.plot(list_test, label='real')
+        #pyplot.plot(list_future_forecast_pred, label='pred')
+        #pyplot.legend()
+        #pyplot.show()
+    
+        mae_temp = mean_absolute_error(list_test, list_future_forecast_pred)
+        print('El error medio del modelo_test es: {}'.format(mae_temp))
+
+        if mae_temp < mae_period:
+            best_lag=lag
+            mae_period=mae_temp
+        else:
+            print ("mae:" + str(mae_period))
+
+    print ("######best mae is " + str(mae_period) + " with the lag " + str(best_lag))
+    
+    model = pf.VAR(df_train,lags=best_lag)
     x = model.fit()
 
     #model.plot_z(list(range(0,6)),figsize=(15,5))
     #model.plot_fit(figsize=(8,5))
     #model.plot_predict_is(h=8, figsize=((8,5)))
     #model.plot_predict(past_values=20, h=6, figsize=(8,5))
-    
+
     future_forecast_pred = model.predict(len(df_test))
     future_forecast_pred = future_forecast_pred[['valores']]
 
     list_test = df_test['valores'].values
     list_future_forecast_pred = future_forecast_pred['valores'].values
-    
+
     #mse_test = (list_future_forecast_pred - list_test)
     #mse_abs_test = abs(mse_test)
-    
+
+    #pyplot.plot(list_test, label='real')
+    #pyplot.plot(list_future_forecast_pred, label='pred')
+    #pyplot.legend()
+    #pyplot.show()
+
     mse = mean_squared_error(list_test, list_future_forecast_pred)
     print('El error medio del modelo_test es: {}'.format(mse))
+
+
     rmse = np.sqrt(mse)
     print('El root error medio del modelo_test es: {}'.format(rmse))
     mae = mean_absolute_error(list_test, list_future_forecast_pred)
@@ -79,13 +115,17 @@ def univariate_anomaly_VAR(lista_datos):
     
     #####forecast#####
     
-    model_for = pf.VAR(df,lags=5)
+    model_for = pf.VAR(df,lags=best_lag)
     x_for = model_for.fit()
 
     #model.plot_z(list(range(0,6)),figsize=(15,5))
     #model.plot_fit(figsize=(8,5))
     
-    future_forecast_pred_for = model_for.predict(5)
+    future_forecast_pred_for = model_for.predict(num_fut)
+
+    #pyplot.plot(future_forecast_pred_for, label='forecast')
+    #pyplot.legend()
+    #pyplot.show()
     
     df_result_forecast = future_forecast_pred_for.reset_index()
     df_result_forecast = df_result_forecast.rename(columns = {'index':'step'})
@@ -98,19 +138,19 @@ def univariate_anomaly_VAR(lista_datos):
     engine_output['mse'] = mse
     engine_output['mae'] = mae
     engine_output['present_status']=exists_anom_last_5
-    engine_output['present_alerts']=df_aler_ult.to_dict(orient='record')
+    engine_output['present_alerts']=df_aler_ult.fillna(0).to_dict(orient='record')
     engine_output['past']=df_aler.to_dict(orient='record')
     engine_output['engine']='VAR'
-    engine_output['future']= df_result_forecast.to_dict(orient='record')
+    engine_output['future']= df_result_forecast.fillna(0).to_dict(orient='record')
     test_values = pd.DataFrame(future_forecast_pred.values,index = df_test.index,columns=['expected value'])
     test_values['step'] = test_values.index
-    engine_output['debug'] = test_values.to_dict(orient='record')
+    engine_output['debug'] = test_values.fillna(0).to_dict(orient='record')
     
     
     return (engine_output)
 
 
-def anomaly_VAR(list_var):
+def anomaly_VAR(list_var,num_fut):
     df_var = pd.DataFrame()
     
     for i in range(len(list_var)):
@@ -126,8 +166,41 @@ def anomaly_VAR(list_var):
     df_test = df_var[tam_train:]
     print('Tamanio test: {}'.format(df_test.shape))
     
-    lags = int(round(len(df_test)/2))
-    model = pf.VAR(df_train,lags=lags)
+    
+    mae_period = 99999999
+    best_lag=0
+    lags = int(round(len(df_train)/2))
+    for lag in range(lags):
+        print ("entra en el bucle con dato " + str(lag))
+        model = pf.VAR(df_train,lags=lag)
+        x = model.fit()
+
+    
+        future_forecast_pred = model.predict(len(df_test))
+        future_forecast_pred = future_forecast_pred[['expected value']]
+
+        list_test = df_test['expected value'].values
+        list_future_forecast_pred = future_forecast_pred['expected value'].values
+
+        #pyplot.plot(list_test, label='real')
+        #pyplot.plot(list_future_forecast_pred, label='pred')
+        #pyplot.legend()
+        #pyplot.show()
+    
+        mae_temp = mean_absolute_error(list_test, list_future_forecast_pred)
+        print('El error medio del modelo_test es: {}'.format(mae_temp))
+
+        if mae_temp < mae_period:
+            best_lag=lag
+            mae_period=mae_temp
+        else:
+            print ("mae:" + str(mae_period))
+        print ("sale del bucle")
+
+    print ("######best mae is " + str(mae_period) + " with the lag " + str(best_lag))
+
+
+    model = pf.VAR(df_train,lags=best_lag)
     x = model.fit()
 
     #model.plot_z(list(range(0,6)),figsize=(15,5))
@@ -135,12 +208,18 @@ def anomaly_VAR(list_var):
     #model.plot_predict_is(h=90, figsize=((8,5)))
     #model.plot_predict(past_values=len(df_train), h=len(df_test), figsize=(8,5))
     
+    
 
     future_forecast_pred = model.predict(len(df_test))
     future_forecast_pred = future_forecast_pred[['expected value']]
     
     list_test = df_test['expected value'].values
     list_future_forecast_pred = future_forecast_pred['expected value'].values
+
+    #pyplot.plot(list_test, label='real')
+    #pyplot.plot(list_future_forecast_pred, label='pred')
+    #pyplot.legend()
+    #pyplot.show()
     
     #mse_test = (list_future_forecast_pred - list_test)
     #mse_abs_test = abs(mse_test)
@@ -182,13 +261,13 @@ def anomaly_VAR(list_var):
     df_aler_ult = df_aler_ult.fillna(0)
     #####forecast#####
     
-    model_for = pf.VAR(df_var,lags=5)
+    model_for = pf.VAR(df_var,lags=best_lag)
     x_for = model_for.fit()
 
     #model.plot_z(list(range(0,6)),figsize=(15,5))
     #model.plot_fit(figsize=(8,5))
     
-    future_forecast_pred_for = model_for.predict(5)
+    future_forecast_pred_for = model_for.predict(num_fut)
     future_forecast_pred_for = future_forecast_pred_for[['expected value']]
     
     df_result_forecast = future_forecast_pred_for.reset_index()
@@ -201,10 +280,10 @@ def anomaly_VAR(list_var):
     engine_output['mse'] = mse
     engine_output['mae'] = mae
     engine_output['present_status']=exists_anom_last_5
-    engine_output['present_alerts']=df_aler_ult.to_dict(orient='record')
+    engine_output['present_alerts']=df_aler_ult.fillna(0).to_dict(orient='record')
     engine_output['past']=df_aler.to_dict(orient='record')
     engine_output['engine']='VAR'
-    engine_output['future']= df_result_forecast.to_dict(orient='record')
+    engine_output['future']= df_result_forecast.fillna(0).to_dict(orient='record')
 
     engine_output['rmse'] = rmse
     engine_output['mse'] = mse
@@ -213,9 +292,9 @@ def anomaly_VAR(list_var):
     engine_output['present_alerts']=df_aler_ult.to_dict(orient='record')
     engine_output['past']=df_aler.to_dict(orient='record')
     engine_output['engine']='VAR'
-    engine_output['future']= df_result_forecast.to_dict(orient='record')
+    engine_output['future']= df_result_forecast.fillna(0).to_dict(orient='record')
     test_values = pd.DataFrame(future_forecast_pred.values,index = df_test.index,columns=['expected value'])
     test_values['step'] = test_values.index
-    engine_output['debug'] = test_values.to_dict(orient='record')
+    engine_output['debug'] = test_values.fillna(0).to_dict(orient='record')
     
     return (engine_output)

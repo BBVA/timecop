@@ -4,7 +4,7 @@ from pyramid.arima import auto_arima
 from sklearn.metrics import mean_squared_error,mean_absolute_error
 import helpers as h
 
-def anomaly_AutoArima(lista_datos,desv_mse=0):
+def anomaly_AutoArima(lista_datos,num_fut,desv_mse=0):
     
     lista_puntos = np.arange(0, len(lista_datos),1)
 
@@ -73,7 +73,7 @@ def anomaly_AutoArima(lista_datos,desv_mse=0):
     ############## FORECAST START
     updated_model = stepwise_model.fit(df['valores'])
     
-    forecast = updated_model.predict(n_periods=5)
+    forecast = updated_model.predict(n_periods=num_fut)
     
     engine_output['rmse'] = rmse
     engine_output['mse'] = mse
@@ -84,11 +84,10 @@ def anomaly_AutoArima(lista_datos,desv_mse=0):
     engine_output['engine']='Autoarima'
     df_future= pd.DataFrame(forecast,columns=['value'])
     df_future['value']=df_future.value.astype("float32")
-    df_future['step']= np.arange( len(lista_datos),len(lista_datos)+5,1)
+    df_future['step']= np.arange( len(lista_datos),len(lista_datos)+num_fut,1)
     engine_output['future'] = df_future.to_dict(orient='record')
     testing_data  = pd.DataFrame(future_forecast_pred,index = df_test.index,columns=['expected value'])
     testing_data['step']=testing_data.index
     engine_output['debug'] = testing_data.to_dict(orient='record')
     
     return (engine_output)
-

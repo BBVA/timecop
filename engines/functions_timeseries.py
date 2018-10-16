@@ -9,31 +9,37 @@ def model_univariate(lista_datos,num_fut,desv_mse):
     debug = {}
     
     try:
-        engines_output['LSTM'] = anomaly_uni_LSTM(lista_datos,desv_mse)
+        engines_output['LSTM'] = anomaly_uni_LSTM(lista_datos,num_fut,desv_mse)
         debug['LSTM'] = engines_output['LSTM']['debug']
     except Exception as e: 
         print(e)
         print ('ERROR: exception executing LSTM univariate')
-    
-    #try:
-        #engines_output['arima'] = anomaly_AutoArima(lista_datos,desv_mse)
-        #debug['arima'] = engines_output['arima']['debug']
-    #except  Exception as e: 
-        #print(e)
-        #print ('ERROR: exception executing Autoarima')
+       
     try:
-        engines_output['VAR'] = univariate_anomaly_VAR(lista_datos)
+        if (len(lista_datos) > 200):
+            #new_length= 
+            lista_datos=lista_datos[len(lista_datos)-200:]
+        engines_output['arima'] = anomaly_AutoArima(lista_datos,num_fut,desv_mse)
+        debug['arima'] = engines_output['arima']['debug']
+    except  Exception as e: 
+        print(e)
+        print ('ERROR: exception executing Autoarima')
+    
+    try:
+        engines_output['VAR'] = univariate_anomaly_VAR(lista_datos,num_fut)
         debug['VAR'] = engines_output['VAR']['debug']
     except  Exception as e: 
         print(e)
         print ('ERROR: exception executing VAR')
+    
     try:
-        engines_output['Holtwinters'] = anomaly_holt(lista_datos,desv_mse)
+        engines_output['Holtwinters'] = anomaly_holt(lista_datos,num_fut,desv_mse)
         debug['Holtwinters'] = engines_output['Holtwinters']['debug']
     except  Exception as e: 
         print(e)
         print ('ERROR: exception executing Holtwinters')
     
+
     best_mae=999999999
     winner='Holtwinters'
     print ('The size is: ')
@@ -64,19 +70,22 @@ def model_multivariate(list_var,num_fut,desv_mse):
     debug = {}
     
     try:
-        engines_output['LSTM'] = anomaly_LSTM(list_var,desv_mse)
+        engines_output['LSTM'] = anomaly_LSTM(list_var,num_fut,desv_mse)
         debug['LSTM'] = engines_output['LSTM']['debug']
         print (engines_output['LSTM'])
     except   Exception as e: 
         print(e)
         print ('ERROR: exception executing LSTM')
+    
     try:
-        engines_output['VAR'] = anomaly_VAR(list_var)
+        engines_output['VAR'] = anomaly_VAR(list_var,num_fut)
         debug['VAR'] = engines_output['VAR']['debug']
         print (engines_output['VAR'])
-    except   Exception as e: 
-        print(e)
-        print ('ERROR: exception executing VAR')    
+    except   Exception, err: 
+        print(Exception)
+        print (err)
+        print ('ERROR: exception executing VAR') 
+
     best_mae=999999999
     winner='LSTM'
     print ('The size is ')
