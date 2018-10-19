@@ -11,9 +11,8 @@
         </v-flex>
       </v-card-text>
       <v-card-actions>
-        <csv-loader @loaded="processCSV" @serie="changeUrl"/>
         <v-spacer></v-spacer>
-        <v-btn @click="getUrl" color="success">Submit <v-icon right>send</v-icon></v-btn>
+        <csv-loader @loaded="processCSV" @serie="changeUrl"/>
       </v-card-actions>
     </v-card>
     <!-- parameters dialog -->

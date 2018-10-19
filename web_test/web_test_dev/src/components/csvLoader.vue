@@ -1,6 +1,6 @@
 <template>
   <div>
-    <v-btn outline color="blue" @click="$refs.csvFile.click()">csv</v-btn>
+    <v-btn outline color="blue" @click="$refs.csvFile.click()">load csv</v-btn>
     <input type="file" hidden ref="csvFile" accept=".csv, text/plain" @change="loadCSVFile">
     <v-dialog
       v-model="selectHeaderDialog.value"
