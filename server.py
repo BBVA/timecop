@@ -1,5 +1,6 @@
 from flask import request, Flask, jsonify, abort
 from flask_cors import CORS
+import json
 
 import engines.functions_timeseries as ft
 
@@ -20,7 +21,18 @@ def univariate_engine():
     desv_mae = int(timedata.get('desv_metric', 2))
     name = timedata.get('name', 'NA')
     
-
+    if(name != 'NA'):
+        filename= './lst/'+name+'.lst'
+        try:
+            with open(filename, 'r') as filehandle:
+                previousList = json.load(filehandle)
+        except Exception:
+            previousList=[]
+            
+        lista = previousList + lista
+        with open(filename, 'w') as filehandle:
+            json.dump(lista,filehandle)
+    
 
     #desv_mse = 0
     
