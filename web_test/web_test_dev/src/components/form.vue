@@ -98,7 +98,7 @@
 </template>
 
 <script>
-import resultTest from '@/assets/dataTest/dataResponseUni'
+// import resultTest from '@/assets/dataTest/dataResponseUni'
 // import resultTest from '@/assets/dataTest/dataResponseMulti'
 export default {
   name: 'Tform',
