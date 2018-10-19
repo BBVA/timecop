@@ -18,10 +18,10 @@ def model_univariate(lista_datos,num_fut,desv_mse):
         print ('ERROR: exception executing LSTM univariate')
        
     try:
-        if (len(lista_datos) > 200):
+        if (len(lista_datos) > 100):
             #new_length= 
-            lista_datos=lista_datos[len(lista_datos)-200:]
-        engines_output['arima'] = anomaly_AutoArima(lista_datos,num_fut,desv_mse)
+            lista_datos_ari=lista_datos[len(lista_datos)-100:]
+        engines_output['arima'] = anomaly_AutoArima(lista_datos_ari,num_fut,len(lista_datos),desv_mse)
         debug['arima'] = engines_output['arima']['debug']
     except  Exception as e: 
         print(e)

@@ -4,13 +4,21 @@ from pyramid.arima import auto_arima
 from sklearn.metrics import mean_squared_error,mean_absolute_error
 from . helpers import create_train_test
 
-def anomaly_AutoArima(lista_datos,num_fut,desv_mse=0):
+def anomaly_AutoArima(lista_datos,num_fut,orig_size,desv_mse=0):
     
-    lista_puntos = np.arange(0, len(lista_datos),1)
+    print (orig_size)
+    
+    print ("tamanio original")
+    start_point= int(orig_size) - 100
+    
+    print ("start point " + str(start_point))
+    lista_puntos = np.arange(start_point, orig_size,1)
 
+    print (lista_puntos)
     df, df_train, df_test = create_train_test(lista_puntos, lista_datos) 
     
     engine_output={}
+    print ("arranca")
     
     stepwise_model = auto_arima(df_train['valores'], start_p=1, start_q=1, max_p=3, max_q=3, m=12,
                               start_P=0, seasonal=True, d=1, D=1, trace=False, approx=False,
