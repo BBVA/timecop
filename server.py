@@ -48,16 +48,47 @@ def multivariate_engine():
         
     timedata = request.get_json()
     items = timedata['timeseries']
+    name = timedata.get('name', 'NA')
     list_var=[]
     for item in items:
         data = item['data']
-        list_var.append(data)
+        sub_name = item['name']
+        if(name != 'NA'):
+            
+            filename= './lst/'+name + '_' + sub_name +'.lst'
+            try:
+                with open(filename, 'r') as filehandle:
+                    previousList = json.load(filehandle)
+            except Exception:
+                previousList=[]
+            
+            lista = previousList + data
+            with open(filename, 'w') as filehandle:
+                json.dump(lista,filehandle)
         
-    list_var.append(timedata['main'])
+        
+        list_var.append(data)
+    
+    
+    
+    lista = timedata['main']
+    if(name != 'NA'):
+        filename= './lst/'+name+'.lst'
+        try:
+            with open(filename, 'r') as filehandle:
+                previousList = json.load(filehandle)
+        except Exception:
+            previousList=[]
+            
+        lista = previousList + lista
+        with open(filename, 'w') as filehandle:
+            json.dump(lista,filehandle)
+    
+    list_var.append(lista)
     
     num_fut = int(timedata.get('num_future', 5))
     desv_mae = int(timedata.get('desv_metric', 2))
-    name = timedata.get('name', 'NA')
+    
 
     desv_mse = 0
     
