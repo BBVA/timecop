@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_squared_error,mean_absolute_error
 import pyflux as pf
-import helpers as h
+#from helpers import helpers as h
 
 
 
@@ -110,7 +110,7 @@ def univariate_anomaly_VAR(lista_datos,num_fut):
     
     max = df_aler_ult['anomaly_score'].max()
     min = df_aler_ult['anomaly_score'].min()
-    print df_aler_ult
+    print (df_aler_ult)
     df_aler_ult['anomaly_score'] = ( df_aler_ult['anomaly_score'] - min ) /(max - min)
     
     #####forecast#####
@@ -130,8 +130,8 @@ def univariate_anomaly_VAR(lista_datos,num_fut):
     df_result_forecast = future_forecast_pred_for.reset_index()
     df_result_forecast = df_result_forecast.rename(columns = {'index':'step'})
 
-    print df.head(5)
-    print df.tail(5)
+    print (df.head(5))
+    print (df.tail(5))
     
     engine_output={}
     engine_output['rmse'] = rmse
@@ -289,8 +289,8 @@ def anomaly_VAR(list_var,num_fut):
     engine_output['mse'] = mse
     engine_output['mae'] = mae
     engine_output['present_status']=exists_anom_last_5
-    engine_output['present_alerts']=df_aler_ult.to_dict(orient='record')
-    engine_output['past']=df_aler.to_dict(orient='record')
+    engine_output['present_alerts']=df_aler_ult.fillna(0).to_dict(orient='record')
+    engine_output['past']=df_aler.fillna(0).to_dict(orient='record')
     engine_output['engine']='VAR'
     engine_output['future']= df_result_forecast.fillna(0).to_dict(orient='record')
     test_values = pd.DataFrame(future_forecast_pred.values,index = df_test.index,columns=['expected value'])

@@ -17,10 +17,14 @@ def univariate_engine():
     lista=timedata['data']
     
     num_fut = int(timedata.get('num_future', 5))
-
-    desv_mse = 0
+    desv_mae = int(timedata.get('desv_metric', 2))
+    name = timedata.get('name', 'NA')
     
-    salida = ft.model_univariate(lista,num_fut,desv_mse)
+
+
+    #desv_mse = 0
+    
+    salida = ft.model_univariate(lista,num_fut,desv_mae)
     return jsonify(salida), 201
 
 
@@ -40,11 +44,13 @@ def multivariate_engine():
     list_var.append(timedata['main'])
     
     num_fut = int(timedata.get('num_future', 5))
+    desv_mae = int(timedata.get('desv_metric', 2))
+    name = timedata.get('name', 'NA')
 
     desv_mse = 0
     
-    salida = ft.model_multivariate(list_var,num_fut,desv_mse)
-    print(salida)
+    salida = ft.model_multivariate(list_var,num_fut,desv_mae)
+    #print(salida)
     return jsonify(salida), 201
 
 

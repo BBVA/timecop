@@ -1,8 +1,10 @@
-from helpers import merge_two_dicts
-from var import anomaly_VAR, univariate_anomaly_VAR
-from holtwinter import anomaly_holt
-from auto_arima import anomaly_AutoArima
-from lstm import anomaly_LSTM, anomaly_uni_LSTM
+from engines.helpers import merge_two_dicts
+from . var import anomaly_VAR, univariate_anomaly_VAR
+from . holtwinter import anomaly_holt
+from . auto_arima import anomaly_AutoArima
+from . lstm import anomaly_LSTM, anomaly_uni_LSTM
+import traceback
+
 
 def model_univariate(lista_datos,num_fut,desv_mse):
     engines_output={}
@@ -44,7 +46,7 @@ def model_univariate(lista_datos,num_fut,desv_mse):
     winner='Holtwinters'
     print ('The size is: ')
     print (len(engines_output))
-    for key, value in engines_output.iteritems():
+    for key, value in engines_output.items():
         print (key + "   " + str(value['mae']))
         
         if value['mae'] < best_mae:
@@ -55,7 +57,7 @@ def model_univariate(lista_datos,num_fut,desv_mse):
             
     
         
-    print winner
+    print (winner)
     
     temp= {}
     temp['debug']=debug
@@ -81,9 +83,10 @@ def model_multivariate(list_var,num_fut,desv_mse):
         engines_output['VAR'] = anomaly_VAR(list_var,num_fut)
         debug['VAR'] = engines_output['VAR']['debug']
         print (engines_output['VAR'])
-    except   Exception, err: 
+    except   Exception as e: 
         print(Exception)
-        print (err)
+        print("type error: " + str(e))
+        print(traceback.format_exc())
         print ('ERROR: exception executing VAR') 
 
     best_mae=999999999
@@ -91,7 +94,7 @@ def model_multivariate(list_var,num_fut,desv_mse):
     print ('The size is ')
     print (len(engines_output))
     print (debug)
-    for key, value in engines_output.iteritems():
+    for key, value in engines_output.items():
         print (key)
         print(str(value['mae']))
         if value['mae'] < best_mae:
@@ -99,7 +102,7 @@ def model_multivariate(list_var,num_fut,desv_mse):
             best_mae=value['mae']
             winner=key
         
-    print "el ganador es " + winner
+    print ("el ganador es " + winner)
     temp= {}
     temp['debug']=debug
     return merge_two_dicts(engines_output[winner] , temp)
