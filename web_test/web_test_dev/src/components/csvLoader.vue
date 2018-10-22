@@ -23,7 +23,7 @@
               </v-list-tile-action>
               <v-list-tile-content>
                 <v-list-tile-title>{{i}}</v-list-tile-title>
-                <v-list-tile-sub-title class="blue--text text--lighten-2">{{data || 'it is not a valid data, a number is needed'}}</v-list-tile-sub-title>
+                <v-list-tile-sub-title class="blue--text text--lighten-2">{{data || 'not valid data'}}</v-list-tile-sub-title>
               </v-list-tile-content>
               <v-list-tile-action v-if="selectHeaderDialog.selectedHeaders[i]">
                 <v-icon color="green">check_circle</v-icon>
@@ -69,7 +69,9 @@ export default {
           for (let i = 0; i < values.length; i++) {
             const val = +values[i]
             if (!isNaN(val)) {
-              result[headers[i]].push(val)
+              if (result[headers[i]]) {
+                result[headers[i]].push(val)
+              }
             } else {
               result[headers[i]] = false
             }
