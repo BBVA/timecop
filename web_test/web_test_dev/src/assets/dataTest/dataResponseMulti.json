@@ -1,0 +1,117 @@
+{
+  "debug": [
+    {
+      "expected value": 32.07443618774414, 
+      "step": 41.0
+    }, 
+    {
+      "expected value": 31.97576332092285, 
+      "step": 42.0
+    }, 
+    {
+      "expected value": 32.007484436035156, 
+      "step": 43.0
+    }, 
+    {
+      "expected value": 31.92361831665039, 
+      "step": 44.0
+    }, 
+    {
+      "expected value": 32.12289047241211, 
+      "step": 45.0
+    }, 
+    {
+      "expected value": 31.95492935180664, 
+      "step": 46.0
+    }, 
+    {
+      "expected value": 32.04954147338867, 
+      "step": 47.0
+    }, 
+    {
+      "expected value": 32.29735565185547, 
+      "step": 48.0
+    }, 
+    {
+      "expected value": 32.407005310058594, 
+      "step": 49.0
+    }, 
+    {
+      "expected value": 32.43721389770508, 
+      "step": 50.0
+    }, 
+    {
+      "expected value": 32.54985046386719, 
+      "step": 51.0
+    }, 
+    {
+      "expected value": 32.496910095214844, 
+      "step": 52.0
+    }, 
+    {
+      "expected value": 32.48390579223633, 
+      "step": 53.0
+    }, 
+    {
+      "expected value": 32.36211395263672, 
+      "step": 54.0
+    }, 
+    {
+      "expected value": 32.41166687011719, 
+      "step": 55.0
+    }, 
+    {
+      "expected value": 32.29999542236328, 
+      "step": 56.0
+    }, 
+    {
+      "expected value": 32.356842041015625, 
+      "step": 57.0
+    }, 
+    {
+      "expected value": 32.251983642578125, 
+      "step": 58.0
+    }, 
+    {
+      "expected value": 32.291595458984375, 
+      "step": 59.0
+    }, 
+    {
+      "expected value": 32.45553970336914, 
+      "step": 60.0
+    }, 
+    {
+      "expected value": 32.464141845703125, 
+      "step": 61.0
+    }
+  ], 
+  "engine": "LSTM", 
+  "future": [
+    {
+      "step": 62, 
+      "valores": "22.475634"
+    }, 
+    {
+      "step": 63, 
+      "valores": "22.43554"
+    }, 
+    {
+      "step": 64, 
+      "valores": "22.437986"
+    }, 
+    {
+      "step": 65, 
+      "valores": "22.469006"
+    }, 
+    {
+      "step": 66, 
+      "valores": "22.467916"
+    }
+  ], 
+  "mae": 20.910049756290956, 
+  "mse": 445.9071246984847, 
+  "past": [], 
+  "present_alerts": [], 
+  "present_status": "FALSE", 
+  "rmse": 21.116513080963077
+}
