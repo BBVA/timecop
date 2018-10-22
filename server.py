@@ -52,8 +52,8 @@ def multivariate_engine():
     list_var=[]
     for item in items:
         data = item['data']
-        sub_name = item['name']
         if(name != 'NA'):
+            sub_name = item['name']
             
             filename= './lst/'+name + '_' + sub_name +'.lst'
             try:
