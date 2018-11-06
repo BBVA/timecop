@@ -13,6 +13,7 @@ def univariate_anomaly_VAR(lista_datos,num_fut):
     df = pd.DataFrame()
     df['valores'] = lista_datos
 
+    df['valores'] = df.valores.astype(np.float)
     
     tam_train = int(len(df)*0.7)
     #print tam_train
@@ -21,14 +22,17 @@ def univariate_anomaly_VAR(lista_datos,num_fut):
     df_test = df[tam_train:]
     print('Tamanio test: {}'.format(df_test.shape))
     
+    print (type(df_test))
     mae_period = 99999999
     best_lag=0
     lags = int(round(len(df_train)/2))
+    print ("empezamos el bucle")
     for lag in range(lags):
         model = pf.VAR(df_train,lags=lag)
         x = model.fit()
 
     
+        print ("fit ready")
         future_forecast_pred = model.predict(len(df_test))
         future_forecast_pred = future_forecast_pred[['valores']]
 
@@ -170,6 +174,8 @@ def anomaly_VAR(list_var,num_fut):
     mae_period = 99999999
     best_lag=0
     lags = int(round(len(df_train)/2))
+    if (lags > 100):
+        lags=100
     for lag in range(lags):
         print ("entra en el bucle con dato " + str(lag))
         model = pf.VAR(df_train,lags=lag)

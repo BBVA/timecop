@@ -10,13 +10,87 @@ import math
 #import helpers as h
 from keras.layers import Dropout
 from keras.layers.normalization import BatchNormalization
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import mean_squared_error,mean_absolute_error
+from keras.models import Sequential
+from keras.layers.recurrent import LSTM
+from keras.layers.core import Dense
+import math
+from matplotlib import pyplot
+from numpy.random import seed
+seed(69)
+from math import sqrt
+from numpy import concatenate
+import matplotlib.pyplot as plt
+from pandas import read_csv
+from pandas import DataFrame
+from pandas import concat
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import mean_squared_error
+from keras.models import Sequential
+from keras.layers import Dense
+from keras.layers import LSTM
+from keras.layers import Activation, Dropout
+from keras.layers.normalization import BatchNormalization
 
 
 
 
 
 
-def anomaly_uni_LSTM(lista_datos,num_fut,desv_mae=2):
+
+def add_hlayer(model, num_nodes, return_sequences=False):
+    model.add(LSTM(num_nodes, return_sequences=return_sequences))
+    
+def define_model(n_nodes, n_hlayers, dropout, input_data, output_shape):
+    model = Sequential()
+    if n_hlayers == 1:
+        model.add(LSTM(output_dim =int(n_nodes), activation='relu', input_shape =(input_data.shape[1], input_data.shape[2]),
+                   return_sequences=False))
+    else:
+        model.add(LSTM(output_dim =int(n_nodes), activation='relu', input_shape =(input_data.shape[1], input_data.shape[2]),
+                   return_sequences=True))
+    model.add(Dropout(dropout))
+    #print(n_hlayers)
+
+    for i in range(n_hlayers-1):
+        #print(i)
+        if i == n_hlayers-2:
+            add_hlayer(model, n_nodes, return_sequences=False)
+            model.add(Dropout(dropout))
+            model.add(BatchNormalization())                     
+        else:
+            add_hlayer(model, n_nodes, return_sequences=True)
+            model.add(Dropout(dropout))
+            model.add(BatchNormalization())
+
+    model.add(Dense(int(n_nodes/2), activation='relu'))
+    model.add(Dropout(dropout))
+    
+    model.add(Dense(output_dim=int(output_shape)))    
+    
+    model.compile(loss='mse', optimizer='adam', metrics=['accuracy'])
+    return model
+
+
+def hyperparameter_opt(list_hlayers, list_n_nodes, n_dropout, input_data, output_shape):
+    models_dict = {}
+    for hlayer in list_hlayers:
+        for nodes in list_n_nodes:
+            for drop in n_dropout:
+                model = define_model(nodes, hlayer, drop, input_data, output_shape)
+                name = 'model_nlayers_{}_nnodes_{}_dropout_{}'.format(hlayer, nodes, drop)
+                models_dict[name] = model
+                print(name)
+        
+    return models_dict
+
+def anomaly_uni_LSTM(lista_datos,num_forecast=10,desv_mse=2):
+    
     temp= pd.DataFrame(lista_datos,columns=['values'])
 
     scaler_x = MinMaxScaler(feature_range =(-1, 1))
@@ -27,17 +101,18 @@ def anomaly_uni_LSTM(lista_datos,num_fut,desv_mae=2):
 
     x = scaler_x.fit_transform(temp)
     x = x[:,0]
+    print ('x',x)
     TRAIN_SIZE = 0.7
     train_size = int(len(x) * TRAIN_SIZE)
     test_size = len(x) - train_size
 
     x_train, x_test = x[0:train_size], x[train_size:len(x)]
-    #print 'x_train',x_train
-    #print 'x_test',x_test
+    print ('x_train',x_train)
+    print ('x_test',x_test)
 
 
     window_size = 1
-    num_forecast = num_fut
+
     num_fore = num_forecast + 1
 
     win_train_x, win_train_y = [], []
@@ -50,64 +125,119 @@ def anomaly_uni_LSTM(lista_datos,num_fut,desv_mae=2):
 
 
     win_train_x = np.array(win_train_x)
-    #print 'win_train_x',win_train_x
+    print ('win_train_x',win_train_x)
+    print ('shape win_train_x',win_train_x.shape)
     win_train_y = np.array(win_train_y)
-    #print 'win_train_y',win_train_y
+    print ('win_train_y',win_train_y)
+    print ('shape win_train_y',win_train_y.shape)
 
 
     win_train_x = win_train_x.reshape((win_train_x.shape[0], 1, win_train_x.shape[1]))
-    #print(win_train_x.shape)
+    print('reshape win_train_x',win_train_x.shape)
     new_test_x = x_test.reshape((x_test.shape[0], 1, 1))
-    #print 'new_test_x',new_test_x
+    print ('new_test_x',new_test_x)
+
+    ##################neural network######################
+
+    models_dict = {}
+    n_hlayers = [1, 2]
+    n_nodes = [100, 300, 500]
+    n_dropout = [0, 0.1, 0.15, 0.20]
+
+    #pruebas
+    #n_hlayers = [1]
+    #n_nodes = [500]
+    #n_dropout = [0.15]
+
+    models_dict = hyperparameter_opt(n_hlayers, n_nodes, n_dropout, win_train_x, num_forecast)
+
+    for model in models_dict:
+        print(model)
+        print(models_dict[model].summary())
+
+    print ('Numero de modelos',len(models_dict))
+
+    #####getting best model
+    dict_eval_models = {}
+    for model in models_dict:
+#        print 'fit model {}'.format(model)
+        try: 
+            seed(69)
+            name_model = models_dict[model].fit(win_train_x, win_train_y, epochs=25, verbose=0, shuffle=False)
+            dict_eval_models[model] = name_model
+        except:
+            dict_eval_models[model] = 'Error'
+
+    dict_mse_models = {}
+    for model in models_dict:
+        print(model)
+        yhat = models_dict[model].predict(new_test_x)
+        yhat_test = yhat[:,0]
+
+        temp_res= pd.DataFrame(yhat_test,columns=['values'])
+        temp_res = np.array(temp_res)
+        y_yhat_inv = scaler_x.inverse_transform(temp_res)
+        y_yhat_inv= y_yhat_inv[:,0]
+
+        temp_x_test= pd.DataFrame(x_test,columns=['values'])
+        temp_x_test = np.array(temp_x_test)
+        x_test_inv = scaler_x.inverse_transform(temp_x_test)
+
+        #pyplot.plot(x_test_inv, label='real')
+        #pyplot.plot(y_yhat_inv, label='pred')
+        #pyplot.legend()
+        #pyplot.show()
+
+        mse = (mean_squared_error(x_test_inv, y_yhat_inv))
+        rmse = np.sqrt(mse)
+        print ('mse', mse)
+        print ('rmse', rmse)
+        dict_mse_models[model] = rmse
+
+    best_model = min(dict_mse_models, key = dict_mse_models.get)
 
 
-    model = Sequential ()
-    model.add(LSTM(output_dim = 100, activation='relu', input_shape =(win_train_x.shape[1], win_train_x.shape[2])))
-    model.add(Dropout(0.2))
-    model.add(Dense(output_dim=num_forecast))    
-    model.compile(loss='mse', optimizer='adam')
-    history = model.fit(win_train_x, win_train_y, epochs=200, verbose=1, shuffle=False)
+    print('best_model',best_model)
 
-    yhat = model.predict(new_test_x)
-    #print 'yhat',yhat
+    yhat = models_dict[best_model].predict(new_test_x)
+    print ('yhat',yhat)
 
     yhat_test = yhat[:,0]
+    print ('yhat_test',yhat_test)
 
-    temp_tes= pd.DataFrame(yhat_test,columns=['values'])
-    temp_tes = np.array(temp_tes)
-    y_hat_inv = scaler_x.inverse_transform(temp_tes)
+    temp_res= pd.DataFrame(yhat_test,columns=['values'])
+    temp_res = np.array(temp_res)
+
+    y_yhat_inv = scaler_x.inverse_transform(temp_res)
+    print ('y_yhat_inv',y_yhat_inv)
+
+    y_yhat_inv= y_yhat_inv[:,0]
 
     temp_x_test= pd.DataFrame(x_test,columns=['values'])
     temp_x_test = np.array(temp_x_test)
     x_test_inv = scaler_x.inverse_transform(temp_x_test)
-    
-    print ("paso 1")
+    x_test_inv= x_test_inv[:,0]
+    print ('x_test_inv',x_test_inv)
 
-
-    #pyplot.plot(y_hat_inv, label='pred')
     #pyplot.plot(x_test_inv, label='real')
+    #pyplot.plot(y_yhat_inv, label='pred')
     #pyplot.legend()
     #pyplot.show()
 
-    #print x_test_inv[:,0]
-    #print y_hat_inv[:,0]
-
-    mse = (mean_squared_error(x_test_inv[:,0], y_hat_inv[:,0]))
+    mse = (mean_squared_error(x_test_inv, y_yhat_inv))
     rmse = np.sqrt(mse)
+    print ('mse', mse)
+    print ('rmse', rmse)
+
     df_aler = pd.DataFrame()
-    #print ('mse' + mse)
-    #print ('rmse'+ rmse)
-    print ("paso 2")
-
     lista_puntos = np.arange(train_size, train_size + test_size,1)
-    testing_data = pd.DataFrame(y_hat_inv[:,0],index =lista_puntos,columns=['expected value'])
-    #print testing_data
+    testing_data = pd.DataFrame(y_yhat_inv,index =lista_puntos,columns=['expected value'])
 
-    #print 'x_test_inv',x_test_inv
-    #print 'y_hat_inv',y_hat_inv
+    #print ('x_test_inv',x_test_inv)
+    #print ('y_yhat_inv',y_yhat_inv)
 
-    df_aler['real_value'] = x_test_inv[:,0]
-    df_aler['expected_value'] = y_hat_inv[:,0]
+    df_aler['real_value'] = x_test_inv
+    df_aler['expected_value'] = y_yhat_inv
 
     df_aler['mse'] = mse
     df_aler['puntos'] = df_aler.index
@@ -116,18 +246,21 @@ def anomaly_uni_LSTM(lista_datos,num_fut,desv_mae=2):
 
 
     df_aler['rmse'] = rmse
-    mae = mean_absolute_error(y_hat_inv[:,0], x_test_inv[:,0])
+    mae = mean_absolute_error(y_yhat_inv, x_test_inv)
     df_aler['mae'] = mae
 
 
     df_aler['anomaly_score'] = abs(df_aler['expected_value']-df_aler['real_value'])/df_aler['mae']
+    #print (df_aler)
+
     df_aler_ult = df_aler[:5]
-    df_aler = df_aler[(df_aler['anomaly_score']> desv_mae)]
+    df_aler = df_aler[(df_aler['anomaly_score']> desv_mse)]
     max_anom = df_aler['anomaly_score'].max()
     min_anom = df_aler['anomaly_score'].min()
 
     df_aler['anomaly_score'] = ( df_aler['anomaly_score'] - min_anom ) /(max_anom - min_anom)
 
+    print ('Anomaly')
     df_aler_ult = df_aler[:5]
 
     df_aler_ult = df_aler_ult[(df_aler_ult.index==df_aler.index.max())|(df_aler_ult.index==((df_aler.index.max())-1))
@@ -142,10 +275,45 @@ def anomaly_uni_LSTM(lista_datos,num_fut,desv_mae=2):
 
     df_aler_ult['anomaly_score']= ( df_aler_ult['anomaly_score'] - min_ult ) /(max_ult - min_ult)
 
+    #print (df_aler_ult)
+
+
 
     ################## forecast
-    temp_res= pd.DataFrame(yhat[-1],columns=['values'])
-    print (temp_res)
+    win_todo_x, win_todo_y = [], []
+    for i in range(len(x) - window_size - 1):
+        if len(x)<(i+num_fore):
+            break
+        a = x[i:(i + window_size)]
+        win_todo_x.append(a)
+        win_todo_y.append(x[i + window_size: i+num_fore])
+
+    win_todo_x = np.array(win_todo_x)
+    #print ('win_todo_x',win_todo_x)
+    #print ('shape win_todo_x',win_todo_x.shape)
+
+    win_todo_y = np.array(win_todo_y)
+    #print ('win_todo_y',win_todo_y)
+    #print ('shape win_todo_y',win_todo_y.shape)
+
+    win_todo_x = win_todo_x.reshape((win_todo_x.shape[0], 1, win_todo_x.shape[1]))
+    #print('reshape win_todo_x',win_todo_x.shape)
+
+
+    name_model = models_dict[best_model].fit(win_todo_x, win_todo_y, epochs=25, verbose=0, shuffle=False)
+
+    falta_win_todo_x = x[-num_forecast:]
+    #print ('falta_win_todo_x',falta_win_todo_x)
+    #print ('shape falta_win_todo_x',falta_win_todo_x.shape)
+
+    falta_win_todo_x = falta_win_todo_x.reshape(falta_win_todo_x.shape[0],1,1)
+    #print ('x',x)
+    #print ('falta_win_todo_x',falta_win_todo_x)
+    yhat_todo = models_dict[best_model].predict(falta_win_todo_x)
+    #print ('yhat_todo',yhat_todo)
+    #print ('yhat_todo',yhat_todo[-1,:])
+
+    temp_res= pd.DataFrame(yhat_todo[-1],columns=['values'])
     temp_res = np.array(temp_res)
     y_fore_inv = scaler_x.inverse_transform(temp_res)
 
@@ -156,8 +324,8 @@ def anomaly_uni_LSTM(lista_datos,num_fut,desv_mae=2):
     #pyplot.legend()
     #pyplot.show()
 
-    engine_output={}
 
+    engine_output={}
 
     engine_output['rmse'] = int(rmse)
     engine_output['mse'] = int(mse)
@@ -171,15 +339,15 @@ def anomaly_uni_LSTM(lista_datos,num_fut,desv_mae=2):
 
     df_future['value']=df_future.value.astype("float64")
     df_future['step']= np.arange(len(x),len(x)+len(y_fore_inv),1)
-
-    #print 'df_future',df_future
     engine_output['future'] = df_future.fillna(0).to_dict(orient='record')
 
     testing_data['step']=testing_data.index
 
-    engine_output['debug'] = testing_data.to_dict(orient='record')
+    engine_output['debug'] = testing_data.fillna(0).to_dict(orient='record')
 
-    return (engine_output)
+    return engine_output
+
+
 
 def series_to_supervised(data, n_in=1, n_out=1, dropnan=True):
     n_vars = 1 if type(data) is list else data.shape[1]
@@ -209,110 +377,162 @@ def series_to_supervised(data, n_in=1, n_out=1, dropnan=True):
 
 
 
-def anomaly_LSTM(list_var,num_fut,desv_mae=2):
+def anomaly_LSTM(list_var,num_fut=10,desv_mae=2):
+
     df_var = pd.DataFrame()
     for i in range(len(list_var)):
         df_var['var_{}'.format(i)] = list_var[i]
-    print (df_var.head(3))
+    #print df_var
 
-    normalized_df = (df_var-df_var.min())/(df_var.max()-df_var.min())
-    #print normalized_df.head(3)
+    temp_var_ult = pd.DataFrame(df_var[df_var.columns[-1]]) 
+    scaler_y = MinMaxScaler(feature_range =(-1, 1))
+    y = scaler_y.fit_transform(temp_var_ult)
+    #print ('y', y)
+
+    scaler_x = MinMaxScaler(feature_range =(-1, 1))
+    #x = np.array(df_var)
+    #print x
+    x = scaler_x.fit_transform(df_var)
+    #x = x[:,0]
+    #print ('x',x)
+
+    TRAIN_SIZE = 0.7
+    train_size = int(len(x) * TRAIN_SIZE)
+    test_size = len(x) - train_size
+
+    x_train, x_test = x[0:train_size], x[train_size:len(x)]
+    #print ('x_train',x_train)
+    #print ('x_test',x_test)
+    #print ('shape x_test',x_test.shape) 
+
+    window_size = 1
+    num_fore = num_forecast + 1
+
+    win_train_x, win_train_y = [], []
+    for i in range(len(x_train) - window_size - 1):
+        if len(x_train)<(i+num_fore):
+            break
+        a = x_train[i:(i + window_size)]
+        win_train_x.append(a)
+        win_train_y.append(x_train[i + window_size: i+num_fore])
+
+    win_train_x = np.array(win_train_x)
+    print ('win_train_x',win_train_x)
+    print ('shape win_train_x',win_train_x.shape)
+    win_train_y = np.array(win_train_y)
+    print ('win_train_y',win_train_y)
+    print ('shape win_train_y',win_train_y.shape)    
+    win_train_y_var_pred = win_train_y[:,:,-1] 
+    print ('win_train_y_var_pred',win_train_y_var_pred) 
+    print ('shape win_train_y_var_pred',win_train_y_var_pred.shape)
+
+    new_test_x = x_test.reshape((x_test.shape[0], 1, x_test.shape[1]))
+    print ('new_test_x',new_test_x)
+    print ('shape new_test_x',new_test_x.shape)
 
 
-    values = normalized_df.values
 
-    TRAIN_SIZE = 0.70
-    train_size = int(len(values) * TRAIN_SIZE)
-    test_size = len(values) - train_size
-    train, test = values[0:train_size, :], values[train_size:len(values), :]
+    ##################neural network######################
 
-    train_X, train_y = train[:, :-1], train[:, -1]
-    test_X, test_y = test[:, :-1], test[:, -1]
+    models_dict = {}
+    n_hlayers = [1, 2, 3]
+    n_nodes = [100, 300, 500,700]
+    n_dropout = [0, 0.1, 0.15, 0.20]
 
-    train_X = train_X.reshape((train_X.shape[0], 1, train_X.shape[1]))
-    test_X = test_X.reshape((test_X.shape[0], 1, test_X.shape[1]))
-    print(train_X.shape, train_y.shape, test_X.shape, test_y.shape)
+    #pruebas
+    #n_hlayers = [1]
+    #n_nodes = [500]
+    #n_dropout = [0]
 
+    models_dict = hyperparameter_opt(n_hlayers, n_nodes, n_dropout, win_train_x, num_forecast)
 
-    model = Sequential()
+    for model in models_dict:
+        print(model)
+        print(models_dict[model].summary())
 
-    model.add(LSTM(30, input_shape=(train_X.shape[1], train_X.shape[2]),return_sequences=True))
-    model.add(Dropout(0.2))
-    model.add(BatchNormalization())
+    print ('Numero de modelos',len(models_dict))
 
-    model.add(LSTM(30,return_sequences=True))
-    model.add(Dropout(0.2))
-    model.add(BatchNormalization())
-
-    model.add(LSTM(30))
-    model.add(Dropout(0.2))
-    model.add(BatchNormalization())
-
-    model.add(Dense(32,activation='relu'))
-    model.add(Dropout(0.2))
-
-    model.add(Dense(1,activation='sigmoid'))
-    model.compile(loss='mae', optimizer='adam')
-    
-    # fit network
-    history = model.fit(train_X, train_y, epochs=50, batch_size=72, validation_data=(test_X, test_y), shuffle=False)
-
-    yhat = model.predict(test_X)
+    #####getting best model
+    dict_eval_models = {}
+    for model in models_dict:
+        #print 'fit model {}'.format(model)
+        try: 
+            seed(69)
+            name_model = models_dict[model].fit(win_train_x, win_train_y_var_pred, epochs=25, verbose=0, shuffle=False)
+            dict_eval_models[model] = name_model
+        except:
+            dict_eval_models[model] = 'Error'
 
 
-    ###################################Desnormalizacion#############################################
-    y_hat_df = pd.DataFrame()
-    y_hat_df['yhat'] = yhat[:,0]
+    dict_mse_models = {}
+    for model in models_dict:
+        print(model)
+        yhat = models_dict[model].predict(new_test_x)
+        yhat_test = yhat[:,0]
 
-    test_y_df = pd.DataFrame()
-    test_y_df['yhat'] = test_y
+        temp_res= pd.DataFrame(yhat_test,columns=['values'])
+        temp_res = np.array(temp_res)
+        y_yhat_inv = scaler_y.inverse_transform(temp_res)
+        y_yhat_inv= y_yhat_inv[:,0]
 
-    #nos quedamos con la columna inicial la cual predecimos para desnormalizar
-    ult = df_var[[df_var.columns[-1]]]
-    ult['yhat'] = ult[df_var.columns[-1]]
-    ult.drop(columns=[df_var.columns[-1]],inplace=True)
+        x_test_var_pred = x_test[:,-1]
+        #print ('x_test_var_pred', x_test_var_pred)
+        temp_x_test= pd.DataFrame(x_test_var_pred,columns=['values'])
+        temp_x_test = np.array(temp_x_test)
+        x_test_inv = scaler_y.inverse_transform(temp_x_test)
+        x_test_inv= x_test_inv[:,0]
 
-    #pyplot.plot(normalized_df[normalized_df.columns[-1]], label='real')
-    #pyplot.plot(y_hat_df, label='pred')
+        #pyplot.plot(x_test_inv, label='real')
+        #pyplot.plot(y_yhat_inv, label='pred')
+        #pyplot.legend()
+        #pyplot.show()
+
+        mse = (mean_squared_error(x_test_inv, y_yhat_inv))
+        rmse = np.sqrt(mse)
+        print ('mse', mse)
+        print ('rmse', rmse)
+        dict_mse_models[model] = rmse
+
+    best_model = min(dict_mse_models, key = dict_mse_models.get)
+
+
+    print('best_model',best_model)
+    yhat = models_dict[best_model].predict(new_test_x)
+    yhat_test = yhat[:,0]
+
+    temp_res= pd.DataFrame(yhat_test,columns=['values'])
+    temp_res = np.array(temp_res)
+    y_yhat_inv = scaler_y.inverse_transform(temp_res)
+    y_yhat_inv= y_yhat_inv[:,0]
+
+    x_test_var_pred = x_test[:,-1]
+    #print ('x_test_var_pred', x_test_var_pred)
+    temp_x_test= pd.DataFrame(x_test_var_pred,columns=['values'])
+    temp_x_test = np.array(temp_x_test)
+    x_test_inv = scaler_y.inverse_transform(temp_x_test)
+    x_test_inv= x_test_inv[:,0]
+
+    #pyplot.plot(x_test_inv, label='real')
+    #pyplot.plot(y_yhat_inv, label='pred')
     #pyplot.legend()
     #pyplot.show()
 
-    op1= (ult.max()-ult.min())
-
-    desnormalize_y_hat_df = (y_hat_df * op1)+ult.min()
-
-    desnormalize_test_y_df = (test_y_df * op1)+ult.min()
-
-    #pyplot.plot(desnormalize_test_y_df, label='real')
-    #pyplot.plot(desnormalize_y_hat_df, label='pred')
-    #pyplot.legend()
-    #pyplot.show()
-
-
-    test_y_list = desnormalize_test_y_df['yhat'].tolist()
-    yhat_list = desnormalize_y_hat_df['yhat'].tolist()
-
-    ################################### Fin Desnormalizacion#############################################
-
-    mse = (mean_squared_error(test_y_list, yhat_list))
+    mse = (mean_squared_error(x_test_inv, y_yhat_inv))
     rmse = np.sqrt(mse)
+    print ('mse', mse)
+    print ('rmse', rmse)
+
+
+
     df_aler = pd.DataFrame()
-    #print 'mse', mse
-    #print 'rmse', rmse
-
-    print ('yhat_list',len(yhat_list))
-    print ('test_y_list',len(test_y_list))
-    print ('values',len(values))
-    print ('train_size',train_size)
-    print ('test_size',test_size)
-
     lista_puntos = np.arange(train_size, train_size + test_size,1)
-    testing_data = pd.DataFrame(yhat_list,index =lista_puntos,columns=['expected value'])
+    testing_data = pd.DataFrame(y_yhat_inv,index =lista_puntos,columns=['expected value'])
 
+    #print ('x_test_inv',x_test_inv)
+    #print ('y_yhat_inv',y_yhat_inv)
 
-
-    df_aler['real_value'] = test_y_list
-    df_aler['expected_value'] = yhat_list
+    df_aler['real_value'] = x_test_inv
+    df_aler['expected_value'] = y_yhat_inv
 
     df_aler['mse'] = mse
     df_aler['puntos'] = df_aler.index
@@ -321,22 +541,21 @@ def anomaly_LSTM(list_var,num_fut,desv_mae=2):
 
 
     df_aler['rmse'] = rmse
-    mae = mean_absolute_error(yhat_list, test_y_list)
-    df_aler['mae'] = mean_absolute_error(yhat_list, test_y_list)
+    mae = mean_absolute_error(y_yhat_inv, x_test_inv)
+    df_aler['mae'] = mae
 
 
     df_aler['anomaly_score'] = abs(df_aler['expected_value']-df_aler['real_value'])/df_aler['mae']
     print (df_aler)
+
     df_aler_ult = df_aler[:5]
-    df_aler = df_aler[(df_aler['anomaly_score']> desv_mae)]
+    df_aler = df_aler[(df_aler['anomaly_score']> desv_mse)]
     max_anom = df_aler['anomaly_score'].max()
     min_anom = df_aler['anomaly_score'].min()
 
-    df_aler['anomaly_score']= ( df_aler['anomaly_score'] - min_anom ) /(max_anom - min_anom)
+    df_aler['anomaly_score'] = ( df_aler['anomaly_score'] - min_anom ) /(max_anom - min_anom)
 
-    print ('Anomaly')
-
-    print (df_aler)
+    #print ('Anomaly')
     df_aler_ult = df_aler[:5]
 
     df_aler_ult = df_aler_ult[(df_aler_ult.index==df_aler.index.max())|(df_aler_ult.index==((df_aler.index.max())-1))
@@ -350,84 +569,74 @@ def anomaly_LSTM(list_var,num_fut,desv_mae=2):
     min_ult = df_aler_ult['anomaly_score'].min()
 
     df_aler_ult['anomaly_score']= ( df_aler_ult['anomaly_score'] - min_ult ) /(max_ult - min_ult)
-    df_aler_ult = df_aler_ult.fillna(0)
 
-    ################################### Forecast #############################################
+    #print (df_aler_ult)
 
+    ###forecast 
+    win_todo_x, win_todo_y = [], []
+    for i in range(len(x) - window_size - 1):
+        if len(x)<(i+num_fore):
+            break
+        a = x[i:(i + window_size)]
+        win_todo_x.append(a)
+        win_todo_y.append(x[i + window_size: i+num_fore])
 
+    win_todo_x = np.array(win_todo_x)
+    #print ('win_todo_x',win_todo_x)
+    #print ('shape win_todo_x',win_todo_x.shape)
 
-    test1_X, test1_y = values[:, :-1], values[:, -1]
-    test1_X = test1_X.reshape((test1_X.shape[0], 1, test1_X.shape[1]))
+    win_todo_y = np.array(win_todo_y)
+    #print ('win_todo_y',win_todo_y)
+    #print ('shape win_todo_y',win_todo_y.shape)    
 
-    model = Sequential()
+    win_todo_y_var_pred = win_todo_y[:,:,-1] 
+    #print ('win_todo_y_var_pred',win_todo_y_var_pred) 
+    #print ('shape win_todo_y_var_pred',win_todo_y_var_pred.shape)
 
-    model.add(LSTM(30, input_shape=(test1_X.shape[1], test1_X.shape[2]),return_sequences=True))
-    model.add(Dropout(0.2))
-    model.add(BatchNormalization())
+    name_model = models_dict[best_model].fit(win_todo_x, win_todo_y_var_pred, epochs=25, verbose=0, shuffle=False)
 
-    model.add(LSTM(30,return_sequences=True))
-    model.add(Dropout(0.2))
-    model.add(BatchNormalization())
+    falta_win_todo_x = x[-num_forecast:,:]
+    #print ('falta_win_todo_x',falta_win_todo_x)
+    #print ('shape falta_win_todo_x',falta_win_todo_x.shape)
 
-    model.add(LSTM(30))
-    model.add(Dropout(0.2))
-    model.add(BatchNormalization())
+    falta_win_todo_x = falta_win_todo_x.reshape(falta_win_todo_x.shape[0],1,falta_win_todo_x.shape[1])
+    #print ()'x',x)
+    #print ('falta_win_todo_x',falta_win_todo_x)
 
-    model.add(Dense(32,activation='relu'))
-    model.add(Dropout(0.2))
+    yhat_todo = models_dict[best_model].predict(falta_win_todo_x)
+    #print ('yhat_todo',yhat_todo)
+    #print ('yhat_todo',yhat_todo[-1,:])
 
-    model.add(Dense(1,activation='sigmoid'))
-    model.compile(loss='mae', optimizer='adam')
+    temp_res= pd.DataFrame(yhat_todo[-1],columns=['values'])
+    temp_res = np.array(temp_res)
+    y_fore_inv = scaler_y.inverse_transform(temp_res)
+    y_fore_inv= y_fore_inv[:,0]
 
-    # fit network
-    history = model.fit(test1_X, test1_y, epochs=50, batch_size=72, verbose=0, shuffle=False)
-
-    num_fut=num_fut
-    len_fore = len(test1_X) - num_fut
-    fore = test1_X[len_fore:]
-    yhat_fore = model.predict(fore)
-
-
-
-    ###################################Desnormalizacion#############################################
-    y_hat_df_fore = pd.DataFrame()
-    y_hat_df_fore['yhat'] = yhat_fore[:,0]
-
-
-    op1= (ult.max()-ult.min())
-
-    desnormalize_y_hat_fore = (y_hat_df_fore * op1)+ult.min()
-
-
-
-    #pyplot.plot(desnormalize_y_hat_fore, label='pred')
+    #pyplot.plot(y_fore_inv, label='pred')
     #pyplot.legend()
     #pyplot.show()
 
-    yhat_fore_list = desnormalize_y_hat_fore['yhat'].tolist()
-
-
-
-    lista_result = np.arange(len(test1_X), (len(test1_X)+num_fut),1)
-    df_result_forecast = pd.DataFrame({'puntos':lista_result, 'valores':yhat_fore_list})
-    df_result_forecast.set_index('puntos',inplace=True)
-    df_result_forecast['valores']=df_result_forecast['valores'].astype(str)
-    df_result_forecast['step'] = df_result_forecast.index
-
     engine_output={}
-    engine_output['rmse'] = rmse
-    engine_output['mse'] = mse
-    engine_output['mae'] = mae
+
+    engine_output['rmse'] = int(rmse)
+    engine_output['mse'] = int(mse)
+    engine_output['mae'] = int(mae)
     engine_output['present_status']=exists_anom_last_5
-    engine_output['present_alerts']=df_aler_ult.to_dict(orient='record')
-    engine_output['past']=df_aler.to_dict(orient='record')
+    engine_output['present_alerts']=df_aler_ult.fillna(0).to_dict(orient='record')
+    engine_output['past']=df_aler.fillna(0).to_dict(orient='record')
     engine_output['engine']='LSTM'
-    engine_output['future']= df_result_forecast.to_dict(orient='record')
+
+    df_future= pd.DataFrame(y_fore_inv,columns=['value'])
+
+    df_future['value']=df_future.value.astype("float64")
+    df_future['step']= np.arange(len(x),len(x)+len(y_fore_inv),1)
+    engine_output['future'] = df_future.to_dict(orient='record')
 
     testing_data['step']=testing_data.index
+
     engine_output['debug'] = testing_data.to_dict(orient='record')
 
-    return (engine_output)
+    return engine_output
 
 
 
