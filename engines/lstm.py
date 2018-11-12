@@ -193,9 +193,11 @@ def anomaly_uni_LSTM(lista_datos,num_forecast=10,desv_mse=2):
 
         mse = (mean_squared_error(x_test_inv, y_yhat_inv))
         rmse = np.sqrt(mse)
+        mae = mean_absolute_error(x_test_inv, y_yhat_inv)
         print ('mse', mse)
         print ('rmse', rmse)
-        dict_mse_models[model] = rmse
+        print ('mae', mae)
+        dict_mse_models[model] = mae
 
     best_model = min(dict_mse_models, key = dict_mse_models.get)
 
@@ -503,9 +505,11 @@ def anomaly_LSTM(list_var,num_fut=10,desv_mae=2):
 
         mse = (mean_squared_error(x_test_inv, y_yhat_inv))
         rmse = np.sqrt(mse)
+        mae = mean_absolute_error(y_yhat_inv, x_test_inv)
         print ('mse', mse)
         print ('rmse', rmse)
-        dict_mse_models[model] = rmse
+        print ('mae', mae)
+        dict_mse_models[model] = mae
 
     best_model = min(dict_mse_models, key = dict_mse_models.get)
 
