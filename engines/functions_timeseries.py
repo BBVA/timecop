@@ -6,7 +6,7 @@ from . lstm import anomaly_LSTM, anomaly_uni_LSTM
 import traceback
 
 
-def model_univariate(lista_datos,num_fut,desv_mse):
+def model_univariate(lista_datos,num_fut,desv_mse,train):
     engines_output={}
     debug = {}
     

@@ -36,6 +36,9 @@ from keras.layers import Dense
 from keras.layers import LSTM
 from keras.layers import Activation, Dropout
 from keras.layers.normalization import BatchNormalization
+import pickle
+
+#import multiprocessing
 
 
 
@@ -202,6 +205,11 @@ def anomaly_uni_LSTM(lista_datos,num_forecast=10,desv_mse=2):
     yhat = models_dict[best_model].predict(new_test_x)
     print ('yhat',yhat)
 
+    ###################################save the best model 
+
+    #model_filename = "./models_temp/lstm_model"  
+    #models_dict[best_model].save(model_filename)
+
     yhat_test = yhat[:,0]
     print ('yhat_test',yhat_test)
 
@@ -301,6 +309,12 @@ def anomaly_uni_LSTM(lista_datos,num_forecast=10,desv_mse=2):
 
 
     name_model = models_dict[best_model].fit(win_todo_x, win_todo_y, epochs=25, verbose=0, shuffle=False)
+    
+    ###################################save the best model 
+
+    model_filename = "./models_temp/lstm_model"  
+    models_dict[best_model].save(model_filename)
+
 
     falta_win_todo_x = x[-num_forecast:]
     #print ('falta_win_todo_x',falta_win_todo_x)

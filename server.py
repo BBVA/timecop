@@ -20,6 +20,8 @@ def univariate_engine():
     num_fut = int(timedata.get('num_future', 5))
     desv_mae = int(timedata.get('desv_metric', 2))
     name = timedata.get('name', 'NA')
+    train = timedata.get('train', 'True')
+
     
     if(name != 'NA'):
         filename= './lst/'+name+'.lst'
@@ -36,7 +38,7 @@ def univariate_engine():
 
     #desv_mse = 0
     
-    salida = ft.model_univariate(lista,num_fut,desv_mae)
+    salida = ft.model_univariate(lista,num_fut,desv_mae,train)
     return jsonify(salida), 201
 
 

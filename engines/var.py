@@ -273,6 +273,12 @@ def anomaly_VAR(list_var,num_fut):
     #model.plot_z(list(range(0,6)),figsize=(15,5))
     #model.plot_fit(figsize=(8,5))
     
+    # save the model to disk
+    filename = "./models_temp/var_model.pkl"  
+    with open(filename, 'wb') as file:  
+        pickle.dump(model, file)
+
+
     future_forecast_pred_for = model_for.predict(num_fut)
     future_forecast_pred_for = future_forecast_pred_for[['expected value']]
     
