@@ -36,6 +36,7 @@ from keras.layers import Dense
 from keras.layers import LSTM
 from keras.layers import Activation, Dropout
 from keras.layers.normalization import BatchNormalization
+from keras.models import load_model
 import pickle
 
 #import multiprocessing
@@ -92,7 +93,7 @@ def hyperparameter_opt(list_hlayers, list_n_nodes, n_dropout, input_data, output
         
     return models_dict
 
-def anomaly_uni_LSTM(lista_datos,num_forecast=10,desv_mse=2):
+def anomaly_uni_LSTM(lista_datos,num_forecast=10,desv_mse=2,train='True'):
     
     temp= pd.DataFrame(lista_datos,columns=['values'])
 
@@ -139,72 +140,83 @@ def anomaly_uni_LSTM(lista_datos,num_forecast=10,desv_mse=2):
     print('reshape win_train_x',win_train_x.shape)
     new_test_x = x_test.reshape((x_test.shape[0], 1, 1))
     print ('new_test_x',new_test_x)
+    
+    
+    actual_model=''
+    
+    
+    ############### hyperparameter finding
+    
+    if (train == 'True'):
 
-    ##################neural network######################
+        ##################neural network######################
 
-    models_dict = {}
-    n_hlayers = [1, 2]
-    n_nodes = [100, 300, 500]
-    n_dropout = [0, 0.1, 0.15, 0.20]
+        models_dict = {}
+        n_hlayers = [1, 2]
+        n_nodes = [100, 300, 500]
+        n_dropout = [0, 0.1, 0.15, 0.20]
 
-    #pruebas
-    #n_hlayers = [1]
-    #n_nodes = [500]
-    #n_dropout = [0.15]
+        #pruebas
+        #n_hlayers = [1]
+        #n_nodes = [500]
+        #n_dropout = [0.15]
 
-    models_dict = hyperparameter_opt(n_hlayers, n_nodes, n_dropout, win_train_x, num_forecast)
+        models_dict = hyperparameter_opt(n_hlayers, n_nodes, n_dropout, win_train_x, num_forecast)
 
-    for model in models_dict:
-        print(model)
-        print(models_dict[model].summary())
+        for model in models_dict:
+            print(model)
+            print(models_dict[model].summary())
 
-    print ('Numero de modelos',len(models_dict))
+        print ('Numero de modelos',len(models_dict))
 
-    #####getting best model
-    dict_eval_models = {}
-    for model in models_dict:
-#        print 'fit model {}'.format(model)
-        try: 
-            seed(69)
-            name_model = models_dict[model].fit(win_train_x, win_train_y, epochs=25, verbose=0, shuffle=False)
-            dict_eval_models[model] = name_model
-        except:
-            dict_eval_models[model] = 'Error'
+        #####getting best model
+        dict_eval_models = {}
+        dict_mse_models = {}
+        for model in models_dict:
+    #        print 'fit model {}'.format(model)
+            try: 
+                seed(69)
+                name_model = models_dict[model].fit(win_train_x, win_train_y, epochs=25, verbose=0, shuffle=False)
+                dict_eval_models[model] = name_model
+            except:
+                dict_eval_models[model] = 'Error'
 
-    dict_mse_models = {}
-    for model in models_dict:
-        print(model)
-        yhat = models_dict[model].predict(new_test_x)
-        yhat_test = yhat[:,0]
+        
+            print(model)
+            yhat = models_dict[model].predict(new_test_x)
+            yhat_test = yhat[:,0]
 
-        temp_res= pd.DataFrame(yhat_test,columns=['values'])
-        temp_res = np.array(temp_res)
-        y_yhat_inv = scaler_x.inverse_transform(temp_res)
-        y_yhat_inv= y_yhat_inv[:,0]
+            temp_res= pd.DataFrame(yhat_test,columns=['values'])
+            temp_res = np.array(temp_res)
+            y_yhat_inv = scaler_x.inverse_transform(temp_res)
+            y_yhat_inv= y_yhat_inv[:,0]
 
-        temp_x_test= pd.DataFrame(x_test,columns=['values'])
-        temp_x_test = np.array(temp_x_test)
-        x_test_inv = scaler_x.inverse_transform(temp_x_test)
+            temp_x_test= pd.DataFrame(x_test,columns=['values'])
+            temp_x_test = np.array(temp_x_test)
+            x_test_inv = scaler_x.inverse_transform(temp_x_test)
 
-        #pyplot.plot(x_test_inv, label='real')
-        #pyplot.plot(y_yhat_inv, label='pred')
-        #pyplot.legend()
-        #pyplot.show()
+            mse = (mean_squared_error(x_test_inv, y_yhat_inv))
+            rmse = np.sqrt(mse)
+            mae = mean_absolute_error(x_test_inv, y_yhat_inv)
+            print ('mse', mse)
+            print ('rmse', rmse)
+            print ('mae', mae)
+            dict_mse_models[model] = mae
+            #if mae != min(dict_mse_models, key = dict_mse_models.get):
+                #del dict_mse_models[model]
 
-        mse = (mean_squared_error(x_test_inv, y_yhat_inv))
-        rmse = np.sqrt(mse)
-        mae = mean_absolute_error(x_test_inv, y_yhat_inv)
-        print ('mse', mse)
-        print ('rmse', rmse)
-        print ('mae', mae)
-        dict_mse_models[model] = mae
-
-    best_model = min(dict_mse_models, key = dict_mse_models.get)
+        best_model = min(dict_mse_models, key = dict_mse_models.get)
 
 
-    print('best_model',best_model)
+        print('best_model',best_model)
+        
+        models_dict[best_model].save('./models_temp/lstm.model')
+        actual_model= models_dict[best_model]
 
-    yhat = models_dict[best_model].predict(new_test_x)
+    else:
+        actual_model= load_model('./models_temp/lstm.model')
+        
+    yhat = actual_model.predict(new_test_x)
     print ('yhat',yhat)
 
     ###################################save the best model 
@@ -310,12 +322,8 @@ def anomaly_uni_LSTM(lista_datos,num_forecast=10,desv_mse=2):
     #print('reshape win_todo_x',win_todo_x.shape)
 
 
-    name_model = models_dict[best_model].fit(win_todo_x, win_todo_y, epochs=25, verbose=0, shuffle=False)
+    name_model = actual_model.fit(win_todo_x, win_todo_y, epochs=25, verbose=0, shuffle=False)
     
-    ###################################save the best model 
-
-    model_filename = "./models_temp/lstm_model"  
-    models_dict[best_model].save(model_filename)
 
 
     falta_win_todo_x = x[-num_forecast:]
@@ -325,7 +333,7 @@ def anomaly_uni_LSTM(lista_datos,num_forecast=10,desv_mse=2):
     falta_win_todo_x = falta_win_todo_x.reshape(falta_win_todo_x.shape[0],1,1)
     #print ('x',x)
     #print ('falta_win_todo_x',falta_win_todo_x)
-    yhat_todo = models_dict[best_model].predict(falta_win_todo_x)
+    yhat_todo = actual_model.predict(falta_win_todo_x)
     #print ('yhat_todo',yhat_todo)
     #print ('yhat_todo',yhat_todo[-1,:])
 
