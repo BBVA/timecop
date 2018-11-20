@@ -1,15 +1,18 @@
+
 import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_squared_error,mean_absolute_error
 from statsmodels.tsa.api import ExponentialSmoothing
-import helpers as h
+from . helpers import create_train_test
+import pickle    
 
-def anomaly_holt(lista_datos,desv_mse=0):
+
+def anomaly_holt(lista_datos,num_fut,desv_mse=0,name='NA'):
     
     lista_puntos = np.arange(0, len(lista_datos),1)
 
 
-    df, df_train, df_test = h.create_train_test(lista_puntos, lista_datos)
+    df, df_train, df_test = create_train_test(lista_puntos, lista_datos)
 
     engine_output={}  
 
@@ -61,7 +64,7 @@ def anomaly_holt(lista_datos,desv_mse=0):
     ##########GRID to find seasonal n_periods
     mae_period = 99999999
     best_period=0
-    for period in range(2,20):
+    for period in range(2,19):
         print ("Period: " + str(period))
         stepwise_model =  ExponentialSmoothing(df_train['valores'],seasonal_periods=period ,trend='add', seasonal='add', )
         fit_stepwise_model = stepwise_model.fit()
@@ -128,11 +131,23 @@ def anomaly_holt(lista_datos,desv_mse=0):
     min = df_aler_ult['anomaly_score'].min()
  
     df_aler_ult['anomaly_score']= ( df_aler_ult['anomaly_score'] - min ) /(max - min)
+    
     print ("Anomaly finished. Start forecasting")
     stepwise_model1 =  ExponentialSmoothing(df['valores'],seasonal_periods=best_period , seasonal='add')
     print ("Pass the training")
     fit_stepwise_model1 = stepwise_model1.fit()
-    future_forecast_pred1 = fit_stepwise_model1.forecast(5)
+
+
+    #with open('./models_temp/learned_model.pkl','w') as f:
+    #    pickle.dump(results,f)
+
+    filename='./models_temp/learned_model_holt_winters'+name
+    with open(filename,'w') as f:
+        f.write(str(best_period))
+        f.close()
+    
+
+    future_forecast_pred1 = fit_stepwise_model1.forecast(num_fut)
     print ("Pass the forecast")
     
 
@@ -146,7 +161,7 @@ def anomaly_holt(lista_datos,desv_mse=0):
     print ("Only for future")
     df_future= pd.DataFrame(future_forecast_pred1,columns=['value'])
     df_future['value']=df_future.value.astype("float32")
-    df_future['step']= np.arange( len(lista_datos),len(lista_datos)+5,1)
+    df_future['step']= np.arange( len(lista_datos),len(lista_datos)+num_fut,1)
     engine_output['future'] = df_future.to_dict(orient='record')
     test_values['step'] = test_values.index
     print ("debug de Holtwinters")
@@ -154,29 +169,160 @@ def anomaly_holt(lista_datos,desv_mse=0):
     engine_output['debug'] = test_values.to_dict(orient='record')
     
     print ("la prediccion es")
-    print df_future
+    print (df_future)
     
     return engine_output
 
 
-def forecast_holt(lista_datos, num_fut):
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def forecast_holt(lista_datos,num_fut,desv_mse=0,name='NA'):
     
     lista_puntos = np.arange(0, len(lista_datos),1)
 
-    df = pd.DataFrame()
-    df['puntos'] = lista_puntos
-    df['valores'] = lista_datos
 
-    df.set_index('puntos',inplace=True)
+    df, df_train, df_test = create_train_test(lista_puntos, lista_datos)
 
-    stepwise_model =  ExponentialSmoothing(df,seasonal_periods=len(df) , seasonal='add')
+    engine_output={}  
+    
+    best_period=0
+
+
+    #stepwise_model =  ExponentialSmoothing(df_train['valores'],seasonal_periods=best_period ,trend='add', seasonal='add', )
+    #fit_stepwise_model = stepwise_model.fit()
+    filename='./models_temp/learned_model_holt_winters'+name
+    with open(filename,'r') as f:
+        
+        best_period = int(f.read())
+        f.close()
+
+    print("el dato es ")
+    print (str(best_period))
+    stepwise_model =  ExponentialSmoothing(df_train['valores'],seasonal_periods=best_period ,trend='add', seasonal='add', )
     fit_stepwise_model = stepwise_model.fit()
     
-    fit_forecast_pred = fit_stepwise_model.fittedvalues
-
-    future_forecast_pred = fit_stepwise_model.forecast(num_fut)
     
-    df_result = pd.DataFrame({'puntos':future_forecast_pred.index, 'valores':future_forecast_pred.values})    
-    df_result.set_index('puntos',inplace=True)
-    return (df_result)
+    future_forecast_pred = fit_stepwise_model.forecast(len(df_test['valores']))
+    print (future_forecast_pred.values)
+
+    
+
+    list_test = df_test['valores'].values
+    mse_test = (future_forecast_pred - list_test)
+    test_values = pd.DataFrame(future_forecast_pred,index = df_test.index,columns=['expected value'])
+
+    
+    print(list_test)
+
+    mse = mean_squared_error(future_forecast_pred.values,list_test)
+
+    print('Model_test mean error: {}'.format(mse))
+    rmse = np.sqrt(mse)
+    print('Model_test root error: {}'.format(rmse))
+
+    mse_abs_test = abs(mse_test)
+
+    df_aler = pd.DataFrame(future_forecast_pred,index = df.index,columns=['expected value'])
+    df_aler['step'] = df['puntos']
+    df_aler['real_value'] = df_test['valores']
+    df_aler['mse'] = mse
+    df_aler['rmse'] = rmse
+    df_aler['mae'] = mean_absolute_error(list_test, future_forecast_pred)
+    df_aler['anomaly_score'] = abs(df_aler['expected value'] - df_aler['real_value']) / df_aler['mae']
+    df_aler_ult = df_aler[:5]
+    df_aler_ult = df_aler_ult[(df_aler_ult.index==df_aler.index.max())|(df_aler_ult.index==((df_aler.index.max())-1))
+                             |(df_aler_ult.index==((df_aler.index.max())-2))|(df_aler_ult.index==((df_aler.index.max())-3))
+                             |(df_aler_ult.index==((df_aler.index.max())-4))]
+    if len(df_aler_ult) == 0:
+        exists_anom_last_5 = 'FALSE'
+    else:
+        exists_anom_last_5 = 'TRUE'
+    
+    
+    df_aler = df_aler[(df_aler['anomaly_score']> 2)]
+    max = df_aler['anomaly_score'].max()
+    min = df_aler['anomaly_score'].min()
+ 
+    df_aler['anomaly_score']= ( df_aler['anomaly_score'] - min ) /(max - min)
+
+    max = df_aler_ult['anomaly_score'].max()
+    min = df_aler_ult['anomaly_score'].min()
+ 
+    df_aler_ult['anomaly_score']= ( df_aler_ult['anomaly_score'] - min ) /(max - min)
+    
+    print ("Anomaly finished. Start forecasting")
+    stepwise_model1 =  ExponentialSmoothing(df['valores'],seasonal_periods=best_period , seasonal='add')
+    print ("Pass the training")
+    fit_stepwise_model1 = stepwise_model1.fit()
+
+
+
+
+    future_forecast_pred1 = fit_stepwise_model1.forecast(num_fut)
+    print ("Pass the forecast")
+    
+
+    engine_output['rmse'] = rmse
+    engine_output['mse'] = mse
+    engine_output['mae'] = mean_absolute_error(list_test, future_forecast_pred)
+    engine_output['present_status']=exists_anom_last_5
+    engine_output['present_alerts']=df_aler_ult.fillna(0).to_dict(orient='record')
+    engine_output['past']=df_aler.fillna(0).to_dict(orient='record')
+    engine_output['engine']='Holtwinters'
+    print ("Only for future")
+    df_future= pd.DataFrame(future_forecast_pred1,columns=['value'])
+    df_future['value']=df_future.value.astype("float32")
+    df_future['step']= np.arange( len(lista_datos),len(lista_datos)+num_fut,1)
+    engine_output['future'] = df_future.to_dict(orient='record')
+    test_values['step'] = test_values.index
+    print ("debug de Holtwinters")
+    print (test_values)
+    engine_output['debug'] = test_values.to_dict(orient='record')
+    
+    print ("la prediccion es")
+    print (df_future)
+    
+    return engine_output
+
+#def forecast_holt(lista_datos, num_fut):
+    
+    #lista_puntos = np.arange(0, len(lista_datos),1)
+
+    #df = pd.DataFrame()
+    #df['puntos'] = lista_puntos
+    #df['valores'] = lista_datos
+
+    #df.set_index('puntos',inplace=True)
+
+    #stepwise_model =  ExponentialSmoothing(df,seasonal_periods=len(df) , seasonal='add')
+    #fit_stepwise_model = stepwise_model.fit()
+    
+    #fit_forecast_pred = fit_stepwise_model.fittedvalues
+
+    #future_forecast_pred = fit_stepwise_model.forecast(num_fut)
+    
+    #df_result = pd.DataFrame({'puntos':future_forecast_pred.index, 'valores':future_forecast_pred.values})    
+    #df_result.set_index('puntos',inplace=True)
+    #return (df_result)
 

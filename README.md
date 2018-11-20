@@ -4,7 +4,7 @@ TIMECOP
 ![alt text](https://raw.githubusercontent.com/BBVA/timecop/master/doc/img/timecop.png)
 
 
-TIMECOP is a RESTful webservice engine that evaluates univariate and multivariate timeseries. It considerates that the time series has 3 stages: the current state of the time series as the last five points, the past state as all the previous points before the current state and the future state as the forecast of the next 5 points. 
+TIMECOP is a RESTful webservice engine that evaluates univariate and multivariate timeseries. It considerates that the time series has 3 stages: the current state of the time series as the last five points, the past state as all the previous points before the current state and the future state as the forecast of the next steps(custom number). 
 
 The aim of TIMECOP is to get insight on the behavior of the time series. To achieve this, the engine compares several time series forecasting algorithms and select the best one according to the MAE (mean absolute error) metric. The 3 different algorithms that compounds the engine are: Holt-Winters, ARIMA, and Recurrent Neural Networks using LSTM cells.
 
