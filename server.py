@@ -3,26 +3,30 @@ from flask_cors import CORS
 import json
 
 import engines.functions_timeseries as ft
+import engines.BBDD as db
 
 app = Flask(__name__)
 CORS(app)
 
 
-@app.route('/univariate/get', methods=['POST'])
+db.init_database()
+
+@app.route('/univariate', methods=['POST'])
 def univariate_engine():
     if not request.json:
         abort(400)
-        
-        
+
+
     timedata = request.get_json()
+    print (timedata)
     lista=timedata['data']
-    
+
     num_fut = int(timedata.get('num_future', 5))
     desv_mae = int(timedata.get('desv_metric', 2))
     name = timedata.get('name', 'NA')
     train = timedata.get('train', 'True')
 
-    
+
     if(name != 'NA'):
         filename= './lst/'+name+'.lst'
         try:
@@ -30,25 +34,25 @@ def univariate_engine():
                 previousList = json.load(filehandle)
         except Exception:
             previousList=[]
-            
+
         lista = previousList + lista
         with open(filename, 'w') as filehandle:
             json.dump(lista,filehandle)
-    
+
 
     #desv_mse = 0
-    
+
     salida = ft.model_univariate(lista,num_fut,desv_mae,train,name)
-    
+
     return jsonify(salida), 201
 
 
-@app.route('/multivariate/get', methods=['POST'])
+@app.route('/multivariate', methods=['POST'])
 def multivariate_engine():
     if not request.json:
         abort(400)
-        
-        
+
+
     timedata = request.get_json()
     items = timedata['timeseries']
     name = timedata.get('name', 'NA')
@@ -57,23 +61,23 @@ def multivariate_engine():
         data = item['data']
         if(name != 'NA'):
             sub_name = item['name']
-            
+
             filename= './lst/'+name + '_' + sub_name +'.lst'
             try:
                 with open(filename, 'r') as filehandle:
                     previousList = json.load(filehandle)
             except Exception:
                 previousList=[]
-            
+
             lista = previousList + data
             with open(filename, 'w') as filehandle:
                 json.dump(lista,filehandle)
-        
-        
+
+
         list_var.append(data)
-    
-    
-    
+
+
+
     lista = timedata['main']
     if(name != 'NA'):
         filename= './lst/'+name+'.lst'
@@ -82,19 +86,19 @@ def multivariate_engine():
                 previousList = json.load(filehandle)
         except Exception:
             previousList=[]
-            
+
         lista = previousList + lista
         with open(filename, 'w') as filehandle:
             json.dump(lista,filehandle)
-    
+
     list_var.append(lista)
-    
+
     num_fut = int(timedata.get('num_future', 5))
     desv_mae = int(timedata.get('desv_metric', 2))
-    
+
 
     desv_mse = 0
-    
+
     salida = ft.model_multivariate(list_var,num_fut,desv_mae)
     #print(salida)
     return jsonify(salida), 201
