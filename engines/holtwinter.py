@@ -163,7 +163,7 @@ def anomaly_holt(lista_datos,num_fut,desv_mse=0,name='NA'):
         f.write(str(best_period)+','+str(best_trend))
         f.close()
 
-    new_model(name, 'Holtwinters', pack('N', 365),str(best_period)+','+str(best_trend))
+    new_model(name, 'Holtwinters', pack('N', 365),str(best_period)+','+str(best_trend),mae_period)
 
 
     future_forecast_pred1 = fit_stepwise_model1.forecast(num_fut)

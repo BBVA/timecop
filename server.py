@@ -5,11 +5,13 @@ import json
 import engines.functions_timeseries as ft
 import engines.BBDD as db
 
+
+
 app = Flask(__name__)
 CORS(app)
 
 
-db.init_database()
+#db.init_database()
 
 @app.route('/univariate', methods=['POST'])
 def univariate_engine():
@@ -24,7 +26,12 @@ def univariate_engine():
     num_fut = int(timedata.get('num_future', 5))
     desv_mae = int(timedata.get('desv_metric', 2))
     name = timedata.get('name', 'NA')
-    train = timedata.get('train', 'True')
+    train = timedata.get('train', True)
+    restart = timedata.get('restart', False)
+
+    print ("train?"+ str(train))
+    print ("restart?" + str(restart))
+    print ("Received TS")
 
 
     if(name != 'NA'):
@@ -32,15 +39,23 @@ def univariate_engine():
         try:
             with open(filename, 'r') as filehandle:
                 previousList = json.load(filehandle)
+            previousList=db.get_ts(name).split(',')
+            previousList = list(map(int, previousList))
         except Exception:
             previousList=[]
+        print ("previous list" )
 
-        lista = previousList + lista
+        if  not restart :
+            print ("Lista append")
+            lista = previousList + lista
         with open(filename, 'w') as filehandle:
             json.dump(lista,filehandle)
-
+        str_lista= ",".join(str(v) for v in lista)
+        db.set_ts(name,str_lista)
 
     #desv_mse = 0
+    print ("la lista al final es "+ str(type(lista)))
+    print (lista)
 
     salida = ft.model_univariate(lista,num_fut,desv_mae,train,name)
 

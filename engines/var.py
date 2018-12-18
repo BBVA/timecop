@@ -96,7 +96,7 @@ def univariate_anomaly_VAR(lista_datos,num_fut,name):
         f.close()
 
     print ("insertando modelo VAR")
-    new_model(name, 'VAR', pack('N', 365),str(best_lag))
+    new_model(name, 'VAR', pack('N', 365),str(best_lag),mae)
 
 
 

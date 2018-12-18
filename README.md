@@ -45,6 +45,10 @@ In the case of univariate time series we will need to send a json with a key val
     Values of data: String with the name of the time series.
     Key name: "train".
     Values of data: Boolean. If True, timecop will find the best algo for this timeseries. If False, will use the last best model for this timeseries.
+    Key name: "desv_metric".
+    Values of data: Numeric. To detect anomalies, is the multiplier to MAE. Bigger less alerts.
+    Key name: "restart".
+    Values of data: Boolean. If True, delete all historical timeseries data. Only using the sending data.
 
 
 
@@ -75,7 +79,7 @@ curl -i -H "Content-Type: application/json" -X POST -d '
 
      }
 
-' http://127.0.0.1:5000/univariate/get
+' http://127.0.0.1:5000/univariate
 ```
 ###### MULTIVARIATE
 ```
@@ -91,7 +95,7 @@ curl -i -H "Content-Type: application/json" -X POST -d '
         "main": [0.8571429252624512, 1.0, 1.0, 0.5714285969734192, 0.1428571492433548, 0.1428571492433548, 0.1428571492433548, 0.1428571492433548, 0.1428571492433548, 0.4285714626312256, 0.5714285969734192, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.8571429252624512, 1.0, 0.0, 0.1428571492433548, 0.2857142984867096, 0.1428571492433548, 0.1428571492433548, 0.1428571492433548, 0.1428571492433548, 0.1428571492433548, 1.0, 1.0, 0.8571429252624512, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.8571429252624512, 0.4285714626312256, 1.0, 0.0, 0.0, 0.1428571492433548, 0.0, 0.0, 0.0, 0.1428571492433548, 0.1428571492433548, 1.0]
 
    }
-' http://127.0.0.1:5000/multivariate/get
+' http://127.0.0.1:5000/multivariate
 ```
 
 ## RESPONSE
@@ -135,7 +139,7 @@ An example response will be:
                   "mae": 5994.289473684211,
                   "mse": 50689736.39473684,
                   "real_value": 34303.0,
-                  "rmse": 7119.672492097992, "step": 102.0 
+                  "rmse": 7119.672492097992, "step": 102.0
                } ],
 
      "present_alerts": [],

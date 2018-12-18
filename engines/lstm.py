@@ -148,7 +148,7 @@ def anomaly_uni_LSTM(lista_datos,num_forecast=10,desv_mse=2,train='True',name='t
 
     ############### hyperparameter finding
 
-    if (train == 'True'):
+    if (train):
 
         ##################neural network######################
 
@@ -215,7 +215,7 @@ def anomaly_uni_LSTM(lista_datos,num_forecast=10,desv_mse=2,train='True',name='t
         print ("insertando modelo LSTM")
         with open('./models_temp/lstm.model'+name,'rb') as f:
             mymodel = bytearray(f.read())
-            new_model(name, 'LSTM', mymodel,'')
+            new_model(name, 'LSTM', mymodel,'',dict_mse_models[best_model])
 
         actual_model= models_dict[best_model]
 

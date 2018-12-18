@@ -18,14 +18,15 @@ def model_univariate(lista_datos,num_fut,desv_mse,train,name):
     debug = {}
 
 
-    if train != 'True':
+    if not train:
         filename = './models_temp/'+name
         with open(filename,'r') as f:
             winner = f.read()
             f.close()
 
         (model_name,model,params)=get_best_model('winner_'+name)
-        winner= model
+        # print ("recupero el motor " )
+        winner= model_name
         if winner == 'LSTM':
             try:
                 engines_output['LSTM'] = anomaly_uni_LSTM(lista_datos,num_fut,desv_mse,train,name)
@@ -61,7 +62,7 @@ def model_univariate(lista_datos,num_fut,desv_mse,train,name):
             #print ('ERROR: exception executing Autoarima')
 
         try:
-            if (train == 'True'):
+            if (train):
                 engines_output['VAR'] = univariate_anomaly_VAR(lista_datos,num_fut,name)
                 debug['VAR'] = engines_output['VAR']['debug']
             else:
@@ -72,7 +73,7 @@ def model_univariate(lista_datos,num_fut,desv_mse,train,name):
             print ('ERROR: exception executing VAR')
 
         try:
-               if (train == 'True'):
+               if (train ):
                    engines_output['Holtwinters'] = anomaly_holt(lista_datos,num_fut,desv_mse,name)
                    debug['Holtwinters'] = engines_output['Holtwinters']['debug']
                else:
@@ -100,12 +101,12 @@ def model_univariate(lista_datos,num_fut,desv_mse,train,name):
         with open(filename,'w') as f:
             f.write(winner)
             f.close()
-        new_model('winner_'+name, winner, pack('N', 365),'')
+        new_model('winner_'+name, winner, pack('N', 365),'',0)
 
 
         print (winner)
 
-    print ("el ganador es " + winner)
+    print ("el ganador es " + str(winner))
     print (engines_output[winner])
     temp= {}
     temp['debug']=debug
