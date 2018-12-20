@@ -4,7 +4,7 @@ from pyramid.arima import auto_arima
 from sklearn.metrics import mean_squared_error,mean_absolute_error
 from . helpers import create_train_test
 
-def anomaly_AutoArima(lista_datos,num_fut,orig_size,desv_mse=0):
+def anomaly_AutoArima(lista_datos,num_fut,orig_size,desv_mse=0,train='True'):
     
     print (orig_size)
     
@@ -26,7 +26,7 @@ def anomaly_AutoArima(lista_datos,num_fut,orig_size,desv_mse=0):
                               suppress_warnings=True,  # don't want convergence warnings
                               c=False,
                               disp=-1,
-                              stepwise=False)  # set to stepwise
+                              stepwise=True)  # set to stepwise
 
     stepwise_model.fit(df_train['valores'])
 
@@ -80,6 +80,12 @@ def anomaly_AutoArima(lista_datos,num_fut,orig_size,desv_mse=0):
 
     ############## FORECAST START
     updated_model = stepwise_model.fit(df['valores'])
+    
+    filename = './models_temp/arima_' +name
+    # Serialize with Pickle
+    with open(filename, 'wb') as pkl:
+        pickle.dump(stepwise_model, pkl)
+    
     
     forecast = updated_model.predict(n_periods=num_fut)
     

@@ -1,0 +1,3 @@
+*.pyc
+*.lst
+/engines/__pycache__
