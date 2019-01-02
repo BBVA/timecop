@@ -1,0 +1,16 @@
+[DDBB]
+URL = "
+
+[]
+key = "secret"
+algo = "HS256"
+
+[pg]
+host = "127.0.0.1"
+user = "postgres"
+pass = "mypass"
+port = 5432
+database = "prest"
+## or used cloud factor
+# URL = "postgresql://user:pass@localhost/mydatabase/?sslmode=disable"
+

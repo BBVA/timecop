@@ -1,0 +1,276 @@
+{
+  "debug": {
+    "Holtwinters": [
+      {
+        "expected value": 285.86322945205876, 
+        "step": 44.0
+      }, 
+      {
+        "expected value": 285.475915363008, 
+        "step": 45.0
+      }, 
+      {
+        "expected value": 286.4403637428464, 
+        "step": 46.0
+      }, 
+      {
+        "expected value": 286.05304965379565, 
+        "step": 47.0
+      }, 
+      {
+        "expected value": 287.017498033634, 
+        "step": 48.0
+      }, 
+      {
+        "expected value": 286.63018394458334, 
+        "step": 49.0
+      }, 
+      {
+        "expected value": 287.5946323244217, 
+        "step": 50.0
+      }, 
+      {
+        "expected value": 287.20731823537096, 
+        "step": 51.0
+      }, 
+      {
+        "expected value": 288.1717666152093, 
+        "step": 52.0
+      }, 
+      {
+        "expected value": 287.7844525261586, 
+        "step": 53.0
+      }, 
+      {
+        "expected value": 288.74890090599695, 
+        "step": 54.0
+      }, 
+      {
+        "expected value": 288.3615868169462, 
+        "step": 55.0
+      }, 
+      {
+        "expected value": 289.3260351967846, 
+        "step": 56.0
+      }, 
+      {
+        "expected value": 288.93872110773384, 
+        "step": 57.0
+      }, 
+      {
+        "expected value": 289.9031694875722, 
+        "step": 58.0
+      }, 
+      {
+        "expected value": 289.51585539852147, 
+        "step": 59.0
+      }, 
+      {
+        "expected value": 290.4803037783599, 
+        "step": 60.0
+      }, 
+      {
+        "expected value": 290.09298968930915, 
+        "step": 61.0
+      }, 
+      {
+        "expected value": 291.0574380691475, 
+        "step": 62.0
+      }
+    ], 
+    "LSTM": [
+      {
+        "expected value": 284.10491943359375, 
+        "step": 44.0
+      }, 
+      {
+        "expected value": 285.1344299316406, 
+        "step": 45.0
+      }, 
+      {
+        "expected value": 285.7671813964844, 
+        "step": 46.0
+      }, 
+      {
+        "expected value": 286.4662170410156, 
+        "step": 47.0
+      }, 
+      {
+        "expected value": 286.2884826660156, 
+        "step": 48.0
+      }, 
+      {
+        "expected value": 285.8920593261719, 
+        "step": 49.0
+      }, 
+      {
+        "expected value": 287.697021484375, 
+        "step": 50.0
+      }, 
+      {
+        "expected value": 290.11981201171875, 
+        "step": 51.0
+      }, 
+      {
+        "expected value": 290.27069091796875, 
+        "step": 52.0
+      }, 
+      {
+        "expected value": 291.962890625, 
+        "step": 53.0
+      }, 
+      {
+        "expected value": 290.6810302734375, 
+        "step": 54.0
+      }, 
+      {
+        "expected value": 290.69183349609375, 
+        "step": 55.0
+      }, 
+      {
+        "expected value": 290.1521301269531, 
+        "step": 56.0
+      }, 
+      {
+        "expected value": 289.3143310546875, 
+        "step": 57.0
+      }, 
+      {
+        "expected value": 288.3861083984375, 
+        "step": 58.0
+      }, 
+      {
+        "expected value": 287.7922058105469, 
+        "step": 59.0
+      }, 
+      {
+        "expected value": 288.3223571777344, 
+        "step": 60.0
+      }, 
+      {
+        "expected value": 289.33575439453125, 
+        "step": 61.0
+      }, 
+      {
+        "expected value": 289.4107666015625, 
+        "step": 62.0
+      }
+    ], 
+    "VAR": [
+      {
+        "expected value": 285.76892062533403, 
+        "step": 44.0
+      }, 
+      {
+        "expected value": 285.62317333823376, 
+        "step": 45.0
+      }, 
+      {
+        "expected value": 285.5953372713822, 
+        "step": 46.0
+      }, 
+      {
+        "expected value": 285.45538031710106, 
+        "step": 47.0
+      }, 
+      {
+        "expected value": 285.45645011089226, 
+        "step": 48.0
+      }, 
+      {
+        "expected value": 285.42282128848905, 
+        "step": 49.0
+      }, 
+      {
+        "expected value": 285.4307234734371, 
+        "step": 50.0
+      }, 
+      {
+        "expected value": 285.4134924618338, 
+        "step": 51.0
+      }, 
+      {
+        "expected value": 285.4088934935136, 
+        "step": 52.0
+      }, 
+      {
+        "expected value": 285.3945169157804, 
+        "step": 53.0
+      }, 
+      {
+        "expected value": 285.3863167893631, 
+        "step": 54.0
+      }, 
+      {
+        "expected value": 285.3750759625683, 
+        "step": 55.0
+      }, 
+      {
+        "expected value": 285.3667164339083, 
+        "step": 56.0
+      }, 
+      {
+        "expected value": 285.357369755395, 
+        "step": 57.0
+      }, 
+      {
+        "expected value": 285.3493445439618, 
+        "step": 58.0
+      }, 
+      {
+        "expected value": 285.3411146745383, 
+        "step": 59.0
+      }, 
+      {
+        "expected value": 285.33360915092095, 
+        "step": 60.0
+      }, 
+      {
+        "expected value": 285.3262210085171, 
+        "step": 61.0
+      }, 
+      {
+        "expected value": 285.31931140042434, 
+        "step": 62.0
+      }
+    ]
+  }, 
+  "engine": "LSTM", 
+  "future": [
+    {
+      "step": 63.0, 
+      "value": 289.4107666015625
+    }, 
+    {
+      "step": 64.0, 
+      "value": 289.72265625
+    }, 
+    {
+      "step": 65.0, 
+      "value": 290.05804443359375
+    }, 
+    {
+      "step": 66.0, 
+      "value": 290.41961669921875
+    }, 
+    {
+      "step": 67.0, 
+      "value": 290.81048583984375
+    }
+  ], 
+  "mae": 0, 
+  "mse": 1, 
+  "past": [
+    {
+      "anomaly_score": 0.0, 
+      "expected value": 287.697021484375, 
+      "mae": 0.8745759725570679, 
+      "mse": 1.0472296476364136, 
+      "real_value": 289.7799908523807, 
+      "step": 6.0
+    }
+  ], 
+  "present_alerts": [], 
+  "present_status": "FALSE", 
+  "rmse": "1.0233423902274417"
+}

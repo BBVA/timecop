@@ -2,15 +2,23 @@ import numpy as np
 import pandas as pd
 from pyramid.arima import auto_arima
 from sklearn.metrics import mean_squared_error,mean_absolute_error
-import helpers as h
+from . helpers import create_train_test
 
-def anomaly_AutoArima(lista_datos,desv_mse=0):
+def anomaly_AutoArima(lista_datos,num_fut,orig_size,desv_mse=0,train='True'):
     
-    lista_puntos = np.arange(0, len(lista_datos),1)
+    print (orig_size)
+    
+    print ("tamanio original")
+    start_point= int(orig_size) - 100
+    
+    print ("start point " + str(start_point))
+    lista_puntos = np.arange(start_point, orig_size,1)
 
-    df, df_train, df_test = h.create_train_test(lista_puntos, lista_datos) 
+    print (lista_puntos)
+    df, df_train, df_test = create_train_test(lista_puntos, lista_datos) 
     
     engine_output={}
+    print ("arranca")
     
     stepwise_model = auto_arima(df_train['valores'], start_p=1, start_q=1, max_p=3, max_q=3, m=12,
                               start_P=0, seasonal=True, d=1, D=1, trace=False, approx=False,
@@ -18,7 +26,7 @@ def anomaly_AutoArima(lista_datos,desv_mse=0):
                               suppress_warnings=True,  # don't want convergence warnings
                               c=False,
                               disp=-1,
-                              stepwise=False)  # set to stepwise
+                              stepwise=True)  # set to stepwise
 
     stepwise_model.fit(df_train['valores'])
 
@@ -73,7 +81,13 @@ def anomaly_AutoArima(lista_datos,desv_mse=0):
     ############## FORECAST START
     updated_model = stepwise_model.fit(df['valores'])
     
-    forecast = updated_model.predict(n_periods=5)
+    filename = './models_temp/arima_' +name
+    # Serialize with Pickle
+    with open(filename, 'wb') as pkl:
+        pickle.dump(stepwise_model, pkl)
+    
+    
+    forecast = updated_model.predict(n_periods=num_fut)
     
     engine_output['rmse'] = rmse
     engine_output['mse'] = mse
@@ -84,11 +98,10 @@ def anomaly_AutoArima(lista_datos,desv_mse=0):
     engine_output['engine']='Autoarima'
     df_future= pd.DataFrame(forecast,columns=['value'])
     df_future['value']=df_future.value.astype("float32")
-    df_future['step']= np.arange( len(lista_datos),len(lista_datos)+5,1)
+    df_future['step']= np.arange( len(lista_datos),len(lista_datos)+num_fut,1)
     engine_output['future'] = df_future.to_dict(orient='record')
     testing_data  = pd.DataFrame(future_forecast_pred,index = df_test.index,columns=['expected value'])
     testing_data['step']=testing_data.index
     engine_output['debug'] = testing_data.to_dict(orient='record')
     
     return (engine_output)
-
