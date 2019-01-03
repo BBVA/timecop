@@ -4,14 +4,19 @@ import json
 
 import engines.functions_timeseries as ft
 import engines.BBDD as db
-
+import os
 
 
 app = Flask(__name__)
 CORS(app)
 
 
+app.config.from_pyfile(os.path.join(".", "config/app.cfg"), silent=False)
+
 #db.init_database()
+
+DB_NAME= app.config.get("DB_NAME")
+PORT = app.config.get("PORT")
 
 @app.route('/univariate', methods=['POST'])
 def univariate_engine():
@@ -124,4 +129,4 @@ def index():
     return "Timecop ready to play"
 
 if __name__ == '__main__':
-    app.run(debug=True,host = '0.0.0.0',port=80)
+    app.run(host = '0.0.0.0',port=PORT)
