@@ -30,9 +30,14 @@
               </v-list-tile-content>
               <v-list-tile-action>
                 <v-text-field
+                  v-if="item.type === 'n' || item.type === 's'"
                   :style="{width: item.type === 'n' ? '48px' : '260px'}"
                   single-line persistent-hint full-width outline
                   v-model="item.value" />
+                <v-switch
+                  v-else
+                  v-model="item.value"
+                ></v-switch>
               </v-list-tile-action>
             </v-list-tile>
           </v-list>
@@ -143,6 +148,20 @@ export default {
         value: 2,
         type: 'n',
         key: 'desv_metric'
+      },
+      {
+        title: 'Train',
+        subtitle: '',
+        value: true,
+        type: 'boolean',
+        key: 'train'
+      },
+      {
+        title: 'Restart',
+        subtitle: '',
+        value: true,
+        type: 'boolean',
+        key: 'restart'
       }
     ],
     selectHeaderDialog: {
@@ -171,7 +190,7 @@ export default {
           })
         }
         this.parametersList.map(v => {
-          if (v.value) {
+          if (v.value !== '') {
             dToSent[v.key] = v.value
           }
         })
