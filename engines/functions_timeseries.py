@@ -19,10 +19,10 @@ def model_univariate(lista_datos,num_fut,desv_mse,train,name):
 
 
     if not train:
-        filename = './models_temp/'+name
-        with open(filename,'r') as f:
-            winner = f.read()
-            f.close()
+        # filename = './models_temp/'+name
+        # with open(filename,'r') as f:
+        #     winner = f.read()
+        #     f.close()
 
         (model_name,model,params)=get_best_model('winner_'+name)
         # print ("recupero el motor " )
@@ -97,10 +97,10 @@ def model_univariate(lista_datos,num_fut,desv_mse,train,name):
                 winner=key
             print(winner)
 
-        filename = './models_temp/'+name
-        with open(filename,'w') as f:
-            f.write(winner)
-            f.close()
+        # filename = './models_temp/'+name
+        # with open(filename,'w') as f:
+        #     f.write(winner)
+        #     f.close()
         new_model('winner_'+name, winner, pack('N', 365),'',0)
 
 

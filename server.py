@@ -4,17 +4,24 @@ import json
 
 import engines.functions_timeseries as ft
 import engines.BBDD as db
-
+import os
 
 
 app = Flask(__name__)
 CORS(app)
 
 
-#db.init_database()
+app.config.from_pyfile(os.path.join(".", "config/app.cfg"), silent=False)
+
+db.init_database()
+
+DB_NAME= app.config.get("DB_NAME")
+PORT = app.config.get("PORT")
 
 @app.route('/univariate', methods=['POST'])
 def univariate_engine():
+    db.init_database()
+
     if not request.json:
         abort(400)
 
@@ -37,8 +44,8 @@ def univariate_engine():
     if(name != 'NA'):
         filename= './lst/'+name+'.lst'
         try:
-            with open(filename, 'r') as filehandle:
-                previousList = json.load(filehandle)
+            # with open(filename, 'r') as filehandle:
+            #     previousList = json.load(filehandle)
             previousList=db.get_ts(name).split(',')
             previousList = list(map(int, previousList))
         except Exception:
@@ -48,8 +55,8 @@ def univariate_engine():
         if  not restart :
             print ("Lista append")
             lista = previousList + lista
-        with open(filename, 'w') as filehandle:
-            json.dump(lista,filehandle)
+        # with open(filename, 'w') as filehandle:
+        #     json.dump(lista,filehandle)
         str_lista= ",".join(str(v) for v in lista)
         db.set_ts(name,str_lista)
 
@@ -124,4 +131,4 @@ def index():
     return "Timecop ready to play"
 
 if __name__ == '__main__':
-    app.run(debug=True,host = '0.0.0.0',port=80)
+    app.run(host = '0.0.0.0',port=PORT)
