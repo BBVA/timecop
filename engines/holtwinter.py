@@ -70,7 +70,7 @@ def anomaly_holt(lista_datos,num_fut,desv_mse=0,name='NA'):
     #list_trend=['add','mul','additive','multiplicative']
     list_trend=['add']
     for trend in list_trend:
-        for period in range(2,18):
+        for period in range(4,18):
             print ('Periodo', period)
             list_forecast_camb = []
             tam_train = int(len(df)*0.7)

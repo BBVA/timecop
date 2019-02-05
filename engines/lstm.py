@@ -6,6 +6,7 @@ from sklearn.metrics import mean_squared_error,mean_absolute_error
 from keras.models import Sequential
 from keras.layers.recurrent import LSTM
 from keras.layers.core import Dense
+from keras import backend as K
 import math
 #import helpers as h
 from keras.layers import Dropout
@@ -18,6 +19,9 @@ from sklearn.metrics import mean_squared_error,mean_absolute_error
 from keras.models import Sequential
 from keras.layers.recurrent import LSTM
 from keras.layers.core import Dense
+
+import gc
+
 import math
 from matplotlib import pyplot
 from numpy.random import seed
@@ -57,26 +61,29 @@ def define_model(n_nodes, n_hlayers, dropout, input_data, output_shape):
         model.add(LSTM(output_dim =int(n_nodes), activation='relu', input_shape =(input_data.shape[1], input_data.shape[2]),
                    return_sequences=False))
     else:
-        model.add(LSTM(output_dim =int(n_nodes), activation='relu', input_shape =(input_data.shape[1], input_data.shape[2]),
-                   return_sequences=True))
+        #model.add(LSTM(output_dim =int(n_nodes), activation='relu', input_shape =(input_data.shape[1], input_data.shape[2]),return_sequences=True))
+        model.add(LSTM(activation='relu', input_shape =(input_data.shape[1], input_data.shape[2]),return_sequences=True,units =int(n_nodes) ))
     model.add(Dropout(dropout))
     #print(n_hlayers)
 
     for i in range(n_hlayers-1):
         #print(i)
         if i == n_hlayers-2:
-            add_hlayer(model, n_nodes, return_sequences=False)
+            #add_hlayer(model, n_nodes, return_sequences=False)
+            model.add(LSTM(n_nodes, return_sequences=False))
             model.add(Dropout(dropout))
             model.add(BatchNormalization())
         else:
-            add_hlayer(model, n_nodes, return_sequences=True)
+            #add_hlayer(model, n_nodes, return_sequences=True)
+            model.add(LSTM(n_nodes, return_sequences=True))
             model.add(Dropout(dropout))
             model.add(BatchNormalization())
 
     model.add(Dense(int(n_nodes/2), activation='relu'))
     model.add(Dropout(dropout))
 
-    model.add(Dense(output_dim=int(output_shape)))
+    #model.add(Dense(output_dim=int(output_shape)))
+    model.add(Dense(units=int(output_shape)))
 
     model.compile(loss='mse', optimizer='adam', metrics=['accuracy'])
     return model
@@ -162,71 +169,124 @@ def anomaly_uni_LSTM(lista_datos,num_forecast=10,desv_mse=2,train='True',name='t
         #n_nodes = [500]
         #n_dropout = [0.15]
 
-        models_dict = hyperparameter_opt(n_hlayers, n_nodes, n_dropout, win_train_x, num_forecast)
+        # models_dict = hyperparameter_opt(n_hlayers, n_nodes, n_dropout, win_train_x, num_forecast)
+        #
+        # for model in models_dict:
+        #     print(model)
+        #     print(models_dict[model].summary())
+        #
+        # print ('Numero de modelos',len(models_dict))
 
-        for model in models_dict:
-            print(model)
-            print(models_dict[model].summary())
 
-        print ('Numero de modelos',len(models_dict))
+
+
+##########################################################################################
+#############################################################################################3
+        best_mae = 999999999
+        best_model=''
+        for hlayer in n_hlayers:
+            for nodes in n_nodes:
+                for drop in n_dropout:
+                    K.clear_session()
+                    gc.collect()
+                    model = define_model(nodes, hlayer, drop, win_train_x, num_forecast)
+                    model_name = 'model_nlayers_{}_nnodes_{}_dropout_{}'.format(hlayer, nodes, drop)
+                    model.fit(win_train_x, win_train_y, epochs=65, verbose=0, shuffle=False)
+
+                    #models_dict[name] = model
+                    print(model_name)
+                    yhat = model.predict(new_test_x)
+                    yhat_test = yhat[:,0]
+
+                    temp_res= pd.DataFrame(yhat_test,columns=['values'])
+                    temp_res = np.array(temp_res)
+                    y_yhat_inv = scaler_x.inverse_transform(temp_res)
+                    y_yhat_inv= y_yhat_inv[:,0]
+
+                    temp_x_test= pd.DataFrame(x_test,columns=['values'])
+                    temp_x_test = np.array(temp_x_test)
+                    x_test_inv = scaler_x.inverse_transform(temp_x_test)
+
+                    mse = (mean_squared_error(x_test_inv, y_yhat_inv))
+                    rmse = np.sqrt(mse)
+                    mae = mean_absolute_error(x_test_inv, y_yhat_inv)
+                    print ('mse', mse)
+                    print ('rmse', rmse)
+                    print ('mae', mae)
+                    if mae < best_mae:
+                            best_model=model
+
+
+
+
+
+
 
         #####getting best model
-        dict_eval_models = {}
-        dict_mse_models = {}
-        for model in models_dict:
-    #        print 'fit model {}'.format(model)
-            try:
-                seed(69)
-                name_model = models_dict[model].fit(win_train_x, win_train_y, epochs=25, verbose=0, shuffle=False)
-                dict_eval_models[model] = name_model
-            except:
-                dict_eval_models[model] = 'Error'
+    #     #dict_eval_models = {}
+    #     dict_mse_models = {}
+    #     for model in models_dict:
+    # #        print 'fit model {}'.format(model)
+    #         try:
+    #             seed(69)
+    #             #name_model = models_dict[model].fit(win_train_x, win_train_y, epochs=25, verbose=0, shuffle=False)
+    #             models_dict[model].fit(win_train_x, win_train_y, epochs=25, verbose=0, shuffle=False)
+    #             #dict_eval_models[model] = name_model
+    #         except:
+    #             dict_eval_models[model] = 'Error'
+    #
+    #
+    #         print(model)
+    #         yhat = models_dict[model].predict(new_test_x)
+    #         yhat_test = yhat[:,0]
+    #
+    #         temp_res= pd.DataFrame(yhat_test,columns=['values'])
+    #         temp_res = np.array(temp_res)
+    #         y_yhat_inv = scaler_x.inverse_transform(temp_res)
+    #         y_yhat_inv= y_yhat_inv[:,0]
+    #
+    #         temp_x_test= pd.DataFrame(x_test,columns=['values'])
+    #         temp_x_test = np.array(temp_x_test)
+    #         x_test_inv = scaler_x.inverse_transform(temp_x_test)
+    #
+    #         mse = (mean_squared_error(x_test_inv, y_yhat_inv))
+    #         rmse = np.sqrt(mse)
+    #         mae = mean_absolute_error(x_test_inv, y_yhat_inv)
+    #         print ('mse', mse)
+    #         print ('rmse', rmse)
+    #         print ('mae', mae)
+    #         dict_mse_models[model] = mae
+    #         # if mae != min(dict_mse_models, key = dict_mse_models.get):
+    #         #     del dict_mse_models[model]
+    #         #     del models_dict[model]
+    #
+    #     best_model = min(dict_mse_models, key = dict_mse_models.get)
 
 
-            print(model)
-            yhat = models_dict[model].predict(new_test_x)
-            yhat_test = yhat[:,0]
+        #print('best_model',best_model)
+        #K.clear_session()
+        # for model in models_dict:
+        #     if model != best_model:
+        #         del models_dict[model]
+        #         print ("Model "+ model +" erased")
+        gc.collect()
 
-            temp_res= pd.DataFrame(yhat_test,columns=['values'])
-            temp_res = np.array(temp_res)
-            y_yhat_inv = scaler_x.inverse_transform(temp_res)
-            y_yhat_inv= y_yhat_inv[:,0]
-
-            temp_x_test= pd.DataFrame(x_test,columns=['values'])
-            temp_x_test = np.array(temp_x_test)
-            x_test_inv = scaler_x.inverse_transform(temp_x_test)
-
-            mse = (mean_squared_error(x_test_inv, y_yhat_inv))
-            rmse = np.sqrt(mse)
-            mae = mean_absolute_error(x_test_inv, y_yhat_inv)
-            print ('mse', mse)
-            print ('rmse', rmse)
-            print ('mae', mae)
-            dict_mse_models[model] = mae
-            #if mae != min(dict_mse_models, key = dict_mse_models.get):
-                #del dict_mse_models[model]
-
-        best_model = min(dict_mse_models, key = dict_mse_models.get)
-
-
-        print('best_model',best_model)
-
-        models_dict[best_model].save('./models_temp/lstm.model'+name)
+        best_model.save('./models_temp/lstm.model'+name)
         print ("insertando modelo LSTM")
         with open('./models_temp/lstm.model'+name,'rb') as f:
             mymodel = f.read()
 
-            new_model(name, 'LSTM', bytearray(mymodel),'',dict_mse_models[best_model])
+            new_model(name, 'LSTM', bytearray(mymodel),'',best_mae)
             f.close()
-        actual_model= models_dict[best_model]
+        actual_model= best_model
 
     else:
 
         print ("Adquiring best LSTM model")
         (model_name,mymodel,params)=get_best_model(name)
-        print("el modelo es")
-        print(model_name)
-        print (mymodel)
+        #print("el modelo es")
+        #print(model_name)
+        #print (mymodel)
         with open('./models_temp/lstm.model'+name, "wb") as newFile:
             newFile.write(mymodel)
             newFile.close()
@@ -386,7 +446,11 @@ def anomaly_uni_LSTM(lista_datos,num_forecast=10,desv_mse=2,train='True',name='t
     testing_data['step']=testing_data.index
 
     engine_output['debug'] = testing_data.fillna(0).to_dict(orient='record')
-
+    K.clear_session()
+    for model in models_dict:
+        del models_dict[model]
+    print ("Models erased")
+    gc.collect()
     return engine_output
 
 
