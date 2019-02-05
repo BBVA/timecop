@@ -8,6 +8,13 @@ from sqlalchemy.orm import sessionmaker
 from struct import *
 from sqlalchemy.sql import *
 import datetime
+import pandas as pd
+
+from collections import defaultdict
+
+from sqlalchemy.inspection import inspect
+
+
 
 
 Base = declarative_base()
@@ -113,3 +120,47 @@ def get_best_model(name):
 
     salida = session.query(Model).filter(Model.TS_name == name).filter(Model.TS_winner_name == winner_model_type.TS_winner_name).order_by(desc('TS_update')).first()
     return ( salida.TS_winner_name,salida.TS_model,salida.TS_model_params)
+
+
+def query_to_dict(rset):
+    result = defaultdict(list)
+    for obj in rset:
+        instance = inspect(obj)
+        for key, x in instance.attrs.items():
+            result[key].append(x.value)
+    return result
+
+
+def get_all_models(name):
+    DB_NAME = 'sqlite:///Timecop_modelsv1.db'
+    engine = create_engine(DB_NAME)
+
+    DBSession = sessionmaker(bind=engine)
+    session = DBSession()
+
+    query = session.query(Model).filter(Model.TS_name.like(name)).all()
+    df = pd.DataFrame(query_to_dict(query))
+    df.drop('TS_model',axis=1,inplace=True)
+    return (df[['TS_name', 'TS_winner_name','TS_update']])
+
+
+
+def get_winners(name):
+    DB_NAME = 'sqlite:///Timecop_modelsv1.db'
+    engine = create_engine(DB_NAME)
+
+    DBSession = sessionmaker(bind=engine)
+    session = DBSession()
+
+    query = session.query(Model)
+    # for mt in query.all():
+    #     print (unpack('H',(mt.TS_model)))
+    #     print (mt.TS_name)
+    #     print (mt.TS_winner_name)
+    #     print (mt.TS_update)
+    #filter(Note.message.like("%somestr%")
+    winner_model_type = session.query(Model).filter(Model.TS_name.like(name)).filter(Model.TS_name.like('winner%')).order_by(desc('TS_update')).all()
+
+    df = pd.DataFrame(query_to_dict(winner_model_type))
+    df.drop('TS_model',axis=1,inplace=True)
+    return (df[['TS_name', 'TS_winner_name','TS_update']])
