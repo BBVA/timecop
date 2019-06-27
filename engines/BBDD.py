@@ -96,7 +96,7 @@ def new_model(name, winner, model,params,metric):
     DBSession = sessionmaker(bind=engine)
     session = DBSession()
     print ("Model saved")
-    print(model)
+    #print(model)
 
     new_model = Model(TS_name=name, TS_winner_name = winner, TS_model=bytearray(model),TS_model_params= params,TS_metric=metric)
     session.add(new_model)

@@ -58,8 +58,7 @@ def add_hlayer(model, num_nodes, return_sequences=False):
 def define_model(n_nodes, n_hlayers, dropout, input_data, output_shape):
     model = Sequential()
     if n_hlayers == 1:
-        model.add(LSTM(output_dim =int(n_nodes), activation='relu', input_shape =(input_data.shape[1], input_data.shape[2]),
-                   return_sequences=False))
+        model.add(LSTM(units =int(n_nodes), activation='relu', input_shape =(input_data.shape[1], input_data.shape[2]),return_sequences=False))
     else:
         #model.add(LSTM(output_dim =int(n_nodes), activation='relu', input_shape =(input_data.shape[1], input_data.shape[2]),return_sequences=True))
         model.add(LSTM(activation='relu', input_shape =(input_data.shape[1], input_data.shape[2]),return_sequences=True,units =int(n_nodes) ))
@@ -160,7 +159,7 @@ def anomaly_uni_LSTM(lista_datos,num_forecast=10,desv_mse=2,train='True',name='t
         ##################neural network######################
 
         models_dict = {}
-        n_hlayers = [1, 2]
+        n_hlayers = [1, 2,3]
         n_nodes = [100, 300, 500]
         n_dropout = [0, 0.1, 0.15, 0.20]
 
@@ -191,7 +190,7 @@ def anomaly_uni_LSTM(lista_datos,num_forecast=10,desv_mse=2,train='True',name='t
                     gc.collect()
                     model = define_model(nodes, hlayer, drop, win_train_x, num_forecast)
                     model_name = 'model_nlayers_{}_nnodes_{}_dropout_{}'.format(hlayer, nodes, drop)
-                    model.fit(win_train_x, win_train_y, epochs=65, verbose=0, shuffle=False)
+                    model.fit(win_train_x, win_train_y, epochs=85, verbose=0, shuffle=False)
 
                     #models_dict[name] = model
                     print(model_name)
@@ -214,6 +213,8 @@ def anomaly_uni_LSTM(lista_datos,num_forecast=10,desv_mse=2,train='True',name='t
                     print ('rmse', rmse)
                     print ('mae', mae)
                     if mae < best_mae:
+                            best_mae=mae
+                            print ("LSTM best new model " + str(mae)+"\n")
                             best_model=model
 
 
@@ -400,7 +401,7 @@ def anomaly_uni_LSTM(lista_datos,num_forecast=10,desv_mse=2,train='True',name='t
     #print('reshape win_todo_x',win_todo_x.shape)
 
 
-    name_model = actual_model.fit(win_todo_x, win_todo_y, epochs=25, verbose=0, shuffle=False)
+    name_model = actual_model.fit(win_todo_x, win_todo_y, epochs=85, verbose=0, shuffle=False)
 
 
 
@@ -564,7 +565,7 @@ def anomaly_LSTM(list_var,num_fut=10,desv_mae=2):
         #print 'fit model {}'.format(model)
         try:
             seed(69)
-            name_model = models_dict[model].fit(win_train_x, win_train_y_var_pred, epochs=25, verbose=0, shuffle=False)
+            name_model = models_dict[model].fit(win_train_x, win_train_y_var_pred, epochs=85, verbose=0, shuffle=False)
             dict_eval_models[model] = name_model
         except:
             dict_eval_models[model] = 'Error'
@@ -701,7 +702,7 @@ def anomaly_LSTM(list_var,num_fut=10,desv_mae=2):
     #print ('win_todo_y_var_pred',win_todo_y_var_pred)
     #print ('shape win_todo_y_var_pred',win_todo_y_var_pred.shape)
 
-    name_model = models_dict[best_model].fit(win_todo_x, win_todo_y_var_pred, epochs=25, verbose=0, shuffle=False)
+    name_model = models_dict[best_model].fit(win_todo_x, win_todo_y_var_pred, epochs=85, verbose=0, shuffle=False)
 
     falta_win_todo_x = x[-num_forecast:,:]
     #print ('falta_win_todo_x',falta_win_todo_x)

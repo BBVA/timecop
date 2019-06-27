@@ -3,11 +3,22 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_squared_error,mean_absolute_error
 from statsmodels.tsa.api import ExponentialSmoothing
-from . helpers import create_train_test
+from . helpers import create_train_test,seasonal_options
 import pickle
 from . BBDD import new_model, get_best_model
 from struct import *
 
+
+def chunkIt(seq, num):
+    avg = len(seq) / float(num)
+    out = []
+    last = 0.0
+
+    while last < len(seq):
+        out.append(len(seq[int(last):int(last + avg)]))
+        last += avg
+
+    return out
 
 def anomaly_holt(lista_datos,num_fut,desv_mse=0,name='NA'):
 
@@ -68,37 +79,47 @@ def anomaly_holt(lista_datos,num_fut,desv_mse=0,name='NA'):
     best_period=0
     best_trend='null'
     #list_trend=['add','mul','additive','multiplicative']
-    list_trend=['add']
-    for trend in list_trend:
-        for period in range(4,18):
-            print ('Periodo', period)
-            list_forecast_camb = []
-            tam_train = int(len(df)*0.7)
-            df_test = df[tam_train:]
-            for i in range(0,len(df_test)):
-                print ('Prediccion punto ', i)
-                df_train_camb = df[:tam_train+i]
-                stepwise_model_camb =  ExponentialSmoothing(df_train_camb['valores'],seasonal_periods=period ,trend=trend, seasonal='add', )
-                fit_stepwise_model_camb = stepwise_model_camb.fit()
-                forecast_camb = fit_stepwise_model_camb.forecast(1)
+    list_trend=['add','mul', 'additive', 'multiplicative'] #,'None']
+    print ("pasa hasta aqui")
+    periods = seasonal_options(df.valores)
+    print (periods)
+    #for trend_val in list_trend:
+    for seasonal_val in list_trend:
+            for period in periods:
+                print ('Periodo', period)
+                list_forecast_camb = []
+                tam_train = int(len(df)*0.7)
+                df_test = df[tam_train:]
+                part_lenghts = chunkIt(range(len(df_test)),3)
 
-                list_forecast_camb.append(forecast_camb.values[0])
+                for i in part_lenghts:
+                        print ('Prediccion punto ', i)
+                        df_train_camb = df[:tam_train+i]
+                        stepwise_model_camb =  ExponentialSmoothing(df_train_camb['valores'] , seasonal=seasonal_val ,seasonal_periods=period ).fit()
+                        forecast_camb = stepwise_model_camb.forecast(i)
 
-            mae_temp = mean_absolute_error(list_forecast_camb,df_test['valores'].values)
-            if mae_temp < mae_period:
-                best_period = period
-                best_trend = trend
-                print ('best_period',best_period)
-                print ('best_trend', best_trend)
-                print ('mae_temp', mae_temp)
-                mae_period = mae_temp
-            else:
-                print ('aa')
+                        list_forecast_camb.extend(forecast_camb.values[:i])
+
+                mae_temp = mean_absolute_error(list_forecast_camb,df_test['valores'].values)
+                if mae_temp < mae_period:
+                            best_period = period
+    #                        best_trend = trend_val
+                            best_seasonal = seasonal_val
+                            print ('best_period',best_period)
+    #                        print ('best_trend', best_trend)
+                            print ('mae_temp', mae_temp)
+                            print ('best_seasonal', best_seasonal)
+                            mae_period = mae_temp
+                else:
+                            print ('aa')
+
+
+
     print ("######best mae is " + str(mae_period) + " with the period " + str(best_period)+ " trend " + best_trend)
 
 
 
-    stepwise_model =  ExponentialSmoothing(df_train['valores'],seasonal_periods=best_period ,trend=best_trend, seasonal='add', )
+    stepwise_model =  ExponentialSmoothing(df_train['valores'],seasonal_periods=best_period , seasonal=best_seasonal )
     fit_stepwise_model = stepwise_model.fit()
 
     future_forecast_pred = fit_stepwise_model.forecast(len(df_test['valores']))
@@ -150,7 +171,7 @@ def anomaly_holt(lista_datos,num_fut,desv_mse=0,name='NA'):
     df_aler_ult['anomaly_score']= ( df_aler_ult['anomaly_score'] - min ) /(max - min)
 
     print ("Anomaly finished. Start forecasting")
-    stepwise_model1 =  ExponentialSmoothing(df['valores'],seasonal_periods=best_period,trend=best_trend , seasonal='add')
+    stepwise_model1 =  ExponentialSmoothing(df['valores'],seasonal_periods=best_period,seasonal=best_seasonal)
     print ("Pass the training")
     fit_stepwise_model1 = stepwise_model1.fit()
 

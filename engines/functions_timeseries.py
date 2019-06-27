@@ -3,6 +3,8 @@ from . var import anomaly_VAR, univariate_anomaly_VAR,univariate_forecast_VAR
 from . holtwinter import anomaly_holt,forecast_holt
 from . auto_arima import anomaly_AutoArima
 from . lstm import anomaly_LSTM, anomaly_uni_LSTM
+from . tbats import anomaly_uni_TBATS
+
 import traceback
 
 from . BBDD import new_model, get_best_model
@@ -51,16 +53,14 @@ def model_univariate(lista_datos,num_fut,desv_mse,train,name):
             print(e)
             print ('ERROR: exception executing LSTM univariate')
 
-        #try:
-            #if (len(lista_datos) > 100):
-                ##new_length=
-                #lista_datos_ari=lista_datos[len(lista_datos)-100:]
-            #engines_output['arima'] = anomaly_AutoArima(lista_datos_ari,num_fut,len(lista_datos),desv_mse)
-            #debug['arima'] = engines_output['arima']['debug']
-        #except  Exception as e:
-            #print(e)
-            #print ('ERROR: exception executing Autoarima')
+    try:
+        engines_output['TBATS'] = anomaly_uni_TBATS(lista_datos,num_fut,desv_mse,train,name)
+        debug['TBATS'] = engines_output['TBATS']['debug']
+    except Exception as e:
+        print(e)
+        print ('ERROR: exception executing TBATS univariate')
 
+        
         try:
             if (train):
                 engines_output['VAR'] = univariate_anomaly_VAR(lista_datos,num_fut,name)
