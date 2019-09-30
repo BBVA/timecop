@@ -53,14 +53,14 @@ def model_univariate(lista_datos,num_fut,desv_mse,train,name):
             print(e)
             print ('ERROR: exception executing LSTM univariate')
 
-    try:
-        engines_output['TBATS'] = anomaly_uni_TBATS(lista_datos,num_fut,desv_mse,train,name)
-        debug['TBATS'] = engines_output['TBATS']['debug']
-    except Exception as e:
-        print(e)
-        print ('ERROR: exception executing TBATS univariate')
+        try:
+            engines_output['TBATS'] = anomaly_uni_TBATS(lista_datos,num_fut,desv_mse,train,name)
+            debug['TBATS'] = engines_output['TBATS']['debug']
+        except Exception as e:
+            print(e)
+            print ('ERROR: exception executing TBATS univariate')
 
-        
+
         try:
             if (train):
                 engines_output['VAR'] = univariate_anomaly_VAR(lista_datos,num_fut,name)
