@@ -33,10 +33,13 @@ The steps to use the docker images are:
 
  1. Install docker
  2. Download timecop docker image:
+ 
  	**docker pull trakuo/timecop:devel**
  3. Execute a container with the timecop image:
+ 
 	**docker run --name timecoprunning -p 3000:80 trakuo/timecop:devel**
  5. Open web test page to test timecop is running
+ 
 	 **http://localhost:3000/static/index.html**
 
 
