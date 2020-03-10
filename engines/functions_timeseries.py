@@ -53,12 +53,12 @@ def model_univariate(lista_datos,num_fut,desv_mse,train,name):
             print(e)
             print ('ERROR: exception executing LSTM univariate')
 
-    try:
-        engines_output['TBATS'] = anomaly_uni_TBATS(lista_datos,num_fut,desv_mse,train,name)
-        debug['TBATS'] = engines_output['TBATS']['debug']
-    except Exception as e:
-        print(e)
-        print ('ERROR: exception executing TBATS univariate')
+        try:
+            engines_output['TBATS'] = anomaly_uni_TBATS(lista_datos,num_fut,desv_mse,train,name)
+            debug['TBATS'] = engines_output['TBATS']['debug']
+        except Exception as e:
+            print(e)
+            print ('ERROR: exception executing TBATS univariate')
 
 
         try:
@@ -110,7 +110,6 @@ def model_univariate(lista_datos,num_fut,desv_mse,train,name):
     print (engines_output[winner])
     temp= {}
     temp['debug']=debug
-    temp['trend']= trendline(lista_datos)
     return merge_two_dicts(engines_output[winner] , temp)
 
 

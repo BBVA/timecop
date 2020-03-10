@@ -20,6 +20,7 @@ RUN pip3 install -U statsmodels
 RUN pip3 install tbats
 RUN pip3 install celery
 RUN pip install redis
+RUN pip install tbats
 RUN service redis-server start
 
 
