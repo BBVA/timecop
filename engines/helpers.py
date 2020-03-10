@@ -6,6 +6,15 @@ import numpy as np
 from sklearn.metrics import mean_squared_error,mean_absolute_error
 import statsmodels.api as sm
 
+def trendline(data, order=1):
+
+    coeffs = np.polyfit(np.arange(0,len(data)), list(data), order)
+    slope = coeffs[-2]
+    return float(slope)
+
+
+
+
 
 def seasonal_options (a):
   print(" Starting seasonal finding")

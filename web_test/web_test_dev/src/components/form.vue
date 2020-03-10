@@ -11,8 +11,9 @@
         </v-flex>
       </v-card-text>
       <v-card-actions>
-        <v-spacer></v-spacer>
         <csv-loader @loaded="processCSV" @serie="changeUrl"/>
+        <v-spacer></v-spacer>
+        <v-btn flat color="green" :disabled="!canSendData" @click="formatData">submit</v-btn>
       </v-card-actions>
     </v-card>
     <!-- parameters dialog -->
@@ -30,9 +31,14 @@
               </v-list-tile-content>
               <v-list-tile-action>
                 <v-text-field
+                  v-if="item.type === 'n' || item.type === 's'"
                   :style="{width: item.type === 'n' ? '48px' : '260px'}"
                   single-line persistent-hint full-width outline
                   v-model="item.value" />
+                <v-switch
+                  v-else
+                  v-model="item.value"
+                ></v-switch>
               </v-list-tile-action>
             </v-list-tile>
           </v-list>
@@ -46,22 +52,15 @@
       </v-card>
     </v-dialog>
     <!-- loading dialog -->
-    <v-dialog
-      v-model="loading"
-      hide-overlay
-      persistent
-      width="300"
-    >
-      <v-card max-width="300">
-        <v-card-text>
-          Processing... this may take a while
-          <v-progress-linear
-            indeterminate
-            class="mb-0"
-          ></v-progress-linear>
-        </v-card-text>
-      </v-card>
-    </v-dialog>
+    <v-card v-if="loading">
+      <v-card-text>
+        Processing... this may take a while
+        <v-progress-linear
+          indeterminate
+          class="mb-0"
+        ></v-progress-linear>
+      </v-card-text>
+    </v-card>
     <!-- error dialog -->
     <v-dialog
       v-model="errorDialog.value"
@@ -83,8 +82,6 @@
 </template>
 
 <script>
-// import resultTest from '@/assets/dataTest/dataResponseUni'
-// import resultTest from '@/assets/dataTest/dataResponseMulti'
 import csvLoader from '@/components/csvLoader'
 export default {
   name: 'Tform',
@@ -92,7 +89,7 @@ export default {
     csvLoader
   },
   data: () => ({
-    url: 'http://localhost:5000/univariate/get',
+    url: 'http://localhost:3000/back_univariate',
     dataToProcess: '',
     loading: false,
     future: 5,
@@ -143,6 +140,20 @@ export default {
         value: 2,
         type: 'n',
         key: 'desv_metric'
+      },
+      {
+        title: 'Train',
+        subtitle: '',
+        value: true,
+        type: 'boolean',
+        key: 'train'
+      },
+      {
+        title: 'Restart',
+        subtitle: '',
+        value: true,
+        type: 'boolean',
+        key: 'restart'
       }
     ],
     selectHeaderDialog: {
@@ -154,47 +165,69 @@ export default {
       timeseries: [],
       main: []
     },
-    mainKey: null
+    mainKey: null,
+    state: ''
   }),
   methods: {
     formatData () {
-      const d = this.parametersDialog.data
-      let dToSent = {}
-      if (d.length > 0) {
-        if (d.length === 1) {
-          dToSent.data = d[0].data
-        } else {
-          dToSent.main = d[0].data
-          dToSent.timeseries = []
-          d.map((v, i) => {
-            if (i > 1) dToSent.timeseries.push(v)
-          })
-        }
-        this.parametersList.map(v => {
-          if (v.value) {
-            dToSent[v.key] = v.value
+      if (!this.parametersDialog.active) {
+        this.getUrlToken()
+      } else {
+        const d = this.parametersDialog.data
+        let dToSent = {}
+        if (d.length > 0) {
+          if (d.length === 1) {
+            dToSent.data = d[0].data
+          } else {
+            dToSent.main = d[0].data
+            dToSent.timeseries = []
+            d.map((v, i) => {
+              if (i > 1) dToSent.timeseries.push(v)
+            })
           }
-        })
-        this.dataToProcess = JSON.stringify(dToSent)
-        this.resetParametersDialog()
-        this.getUrl()
+          this.parametersList.map(v => {
+            if (v.value !== '') {
+              dToSent[v.key] = v.value
+            }
+          })
+          this.dataToProcess = JSON.stringify(dToSent)
+          this.resetParametersDialog()
+          this.getUrlToken()
+        }
       }
     },
     processCSV (e) {
       this.parametersDialog.active = true
       this.parametersDialog.data = e
     },
-    getUrl () {
-      // this.$emit('response', {dataToProcess: this.dataSet, result: resultTest})
+    getUrlToken () {
+      this.$emit('reset')
       this.loading = true
       this.$http.post(this.url, this.dataSet).then(response => {
-        this.$emit('response', {dataToProcess: this.dataSet, result: response.body})
-        this.loading = false
+        const newUrl = `${this.url}_status/${response.body.task_id}`
+        const interval = setInterval(() => {
+          if (this.state === 'SUCCESS' || this.state === 'ERROR') {
+            this.loading = false
+            this.state = ''
+            clearInterval(interval)
+          } else {
+            this.getUrl(newUrl)
+          }
+        }, 2000)
+      })
+    },
+    getUrl (url) {
+      this.$http.get(url).then(response => {
+        console.log(response.body)
+        this.state = response.body.state
+        const r = response.body.response || response.body.status
+        this.$emit('response', {dataToProcess: this.dataSet, result: r})
       }).catch(err => {
         this.loading = false
         this.errorDialog.value = true
         this.errorDialog.text = err
         console.log(err)
+        this.state = 'ERROR'
       })
     },
     changeUrl (e) {
@@ -215,6 +248,14 @@ export default {
     },
     amountSelectedData () {
       return Object.keys(this.selectHeaderDialog.selectedHeaders).length
+    },
+    canSendData () {
+      try {
+        JSON.parse(this.dataToProcess)
+      } catch (e) {
+        return false
+      }
+      return true
     }
   }
 }

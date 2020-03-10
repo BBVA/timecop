@@ -7,8 +7,6 @@ from . BBDD import new_model, get_best_model
 from struct import *
 
 
-
-
 def univariate_anomaly_VAR(lista_datos,num_fut,name):
     lista_puntos = np.arange(0, len(lista_datos),1)
 
@@ -165,14 +163,6 @@ def univariate_anomaly_VAR(lista_datos,num_fut,name):
 
 
     return (engine_output)
-
-
-
-
-
-
-
-
 
 
 
