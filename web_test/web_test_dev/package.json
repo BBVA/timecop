@@ -11,7 +11,7 @@
     "build": "node build/build.js"
   },
   "dependencies": {
-    "npm": "^6.7.0",
+    "npm": "^6.13.4",
     "vue": "^2.5.2",
     "vue-chart2d-constructor": "^1.0.10",
     "vue-resource": "^1.5.1",
