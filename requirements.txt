@@ -1,6 +1,6 @@
 Flask_Cors==3.0.6
 matplotlib==2.2.2
-Keras==2.2.2
+Keras==2.2.4
 pyflux==0.4.15
 pandas==0.23.3
 Flask==1.0.2

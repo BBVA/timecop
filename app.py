@@ -10,7 +10,7 @@ from celery import Celery
 
 
 # import engines functions_timeseries
-from engines.helpers import merge_two_dicts
+from engines.helpers import merge_two_dicts,trendline
 from engines.var import anomaly_VAR, univariate_anomaly_VAR,univariate_forecast_VAR
 from engines.holtwinter import anomaly_holt,forecast_holt
 from engines.auto_arima import anomaly_AutoArima
@@ -177,11 +177,11 @@ def univariate_taskstatus(task_id):
             'status': task.info.get('status', 'Sucessfully'),
             'task_dump': str(task)
         }
-        if 'result' in task.info:
-            print ("el result aparece en el SUCCESS")
-            response['result'] = task.info['result']
-        else:
-            print ("el result NO aparece en el SUCCESS")
+        # if 'result' in task.info:
+        #     print ("el result aparece en el SUCCESS")
+        #     response['result'] = task.info['result']
+        # else:
+        #     print ("el result NO aparece en el SUCCESS")
 
 
     elif task.state != 'FAILURE':
@@ -298,10 +298,20 @@ def back_model_univariate(self, lista_datos,num_fut,desv_mse,train,name):
 
         try:
             if (train ):
-                   engines_output['Holtwinters'] = anomaly_holt(lista_datos,num_fut,desv_mse,name)
-                   debug['Holtwinters'] = engines_output['Holtwinters']['debug']
+                    if (len(lista_datos) > 2000):
+                        #new_length=
+                        lista_datos_holt=lista_datos[len(lista_datos)-2000:]
+                    else:
+                        lista_datos_holt = lista_datos
+                    engines_output['Holtwinters'] = anomaly_holt(lista_datos_holt,num_fut,desv_mse,name)
+                    debug['Holtwinters'] = engines_output['Holtwinters']['debug']
             else:
                    print ("entra en forecast")
+                   if (len(lista_datos) > 2000):
+                       #new_length=
+                       lista_datos_holt=lista_datos[len(lista_datos)-2000:]
+                   else:
+                       lista_datos_holt = lista_datos
                    engines_output['Holtwinters'] = forecast_holt(lista_datos,num_fut,desv_mse,name)
                    debug['Holtwinters'] = engines_output['Holtwinters']['debug']
 
@@ -338,10 +348,12 @@ def back_model_univariate(self, lista_datos,num_fut,desv_mse,train,name):
     print (engines_output[winner])
     temp= {}
     temp['debug']=debug
+    temp['trend']= trendline(lista_datos)
 
 #    return merge_two_dicts(engines_output[winner] , temp)
     salida = merge_two_dicts(engines_output[winner], temp_info)
     salida['winner'] = winner
+    salida['trend']= trendline(lista_datos)
     salida_temp= {}
     salida_temp['status'] = salida
     salida_temp['current'] = 100

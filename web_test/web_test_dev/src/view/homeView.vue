@@ -10,6 +10,10 @@
       <img v-if="!dark" src="static/img/logo.svg" height="70%" class="pa-1" alt="Time Cop">
       <img v-else src="static/img/logo_dark.svg" height="70%" class="pa-1" alt="Time Cop">
       <v-spacer></v-spacer>
+      <v-btn light target="new" href="https://github.com/BBVA/timecop">
+        <img class="mr-2" src="static/github.svg" height="26px" alt="github">
+        <span>github</span>
+      </v-btn>
       <v-btn flat color="blue" @click="toggleDataVisibility = !toggleDataVisibility">
         data
         <v-icon v-if="toggleDataVisibility" right>visibility</v-icon>
@@ -19,6 +23,7 @@
     <v-layout wrap>
       <v-flex :class="toggleDataVisibility ? 'xs8' : 'xs12'">
         <t-graph-2d
+        :triggerReset="reset"
         :dataSet="response"
         :toggleSize="toggleDataVisibility"
         :height="350"
@@ -26,7 +31,7 @@
         :background="dark ? 'grey darken-3': 'grey lighten-3'"/>
       </v-flex>
       <v-flex xs4 v-show="toggleDataVisibility">
-        <t-form @response="showResponse" class="mb-4"></t-form>
+        <t-form @response="showResponse" @reset="reset = !reset" class="mb-4"></t-form>
         <t-json :json="response.prediction"></t-json>
       </v-flex>
     </v-layout>
@@ -47,7 +52,8 @@ export default {
   data: () => ({
     response: {},
     toggleDataVisibility: true,
-    dark: true
+    dark: true,
+    reset: false
   }),
   mounted () {
     this.$emit('toggleTheme', this.dark)
