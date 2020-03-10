@@ -60,7 +60,7 @@ def model_univariate(lista_datos,num_fut,desv_mse,train,name):
         print(e)
         print ('ERROR: exception executing TBATS univariate')
 
-        
+
         try:
             if (train):
                 engines_output['VAR'] = univariate_anomaly_VAR(lista_datos,num_fut,name)
@@ -110,6 +110,7 @@ def model_univariate(lista_datos,num_fut,desv_mse,train,name):
     print (engines_output[winner])
     temp= {}
     temp['debug']=debug
+    temp['trend']= trendline(lista_datos)
     return merge_two_dicts(engines_output[winner] , temp)
 
 

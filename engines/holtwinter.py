@@ -218,25 +218,6 @@ def anomaly_holt(lista_datos,num_fut,desv_mse=0,name='NA'):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 def forecast_holt(lista_datos,num_fut,desv_mse=0,name='NA'):
 
     lista_puntos = np.arange(0, len(lista_datos),1)
