@@ -3,6 +3,7 @@ from engines.var import anomaly_VAR, univariate_anomaly_VAR,univariate_forecast_
 from engines.holtwinter import anomaly_holt,forecast_holt
 from engines.auto_arima import anomaly_AutoArima
 from engines.lstm import anomaly_LSTM, anomaly_uni_LSTM
+from engines.fbprophet import anomaly_fbprophet
 import traceback
 
 #from .server import app,celery
@@ -55,17 +56,24 @@ def model_univariate(self,lista_datos,num_fut,desv_mse,train,name):
             debug['LSTM'] = engines_output['LSTM']['debug']
         except Exception as e:
             print(e)
-            print ('ERROR: exception executing LSTM univariate')
+            print ('ERROR: exception executing LSTM univariate:'+ str(e))
 
-        #try:
-            #if (len(lista_datos) > 100):
+        try:
+            engines_output['fbprophet'] = anomaly_fbprophet(lista_datos,num_fut,desv_mse,train,name)
+            debug['fbprophet'] = engines_output['fbprophet']['debug']
+        except Exception as e:
+
+            print ('ERROR: fbprophet univariate: ' + str(e) )
+
+        try:
+            if (len(lista_datos) > 100):
                 ##new_length=
-                #lista_datos_ari=lista_datos[len(lista_datos)-100:]
-            #engines_output['arima'] = anomaly_AutoArima(lista_datos_ari,num_fut,len(lista_datos),desv_mse)
-            #debug['arima'] = engines_output['arima']['debug']
-        #except  Exception as e:
-            #print(e)
-            #print ('ERROR: exception executing Autoarima')
+                lista_datos_ari=lista_datos[len(lista_datos)-100:]
+            engines_output['arima'] = anomaly_AutoArima(lista_datos_ari,num_fut,len(lista_datos),desv_mse)
+            debug['arima'] = engines_output['arima']['debug']
+        except  Exception as e:
+
+            print ('ERROR: exception executing Autoarima: '+ str(e))
 
         try:
             if (train):
@@ -76,7 +84,7 @@ def model_univariate(self,lista_datos,num_fut,desv_mse,train,name):
                 debug['VAR'] = engines_output['VAR']['debug']
         except  Exception as e:
             print(e)
-            print ('ERROR: exception executing VAR')
+            print ('ERROR: exception executing VAR: '+str(e))
 
         try:
                if (train ):
@@ -88,7 +96,7 @@ def model_univariate(self,lista_datos,num_fut,desv_mse,train,name):
                    debug['Holtwinters'] = engines_output['Holtwinters']['debug']
         except  Exception as e:
                print(e)
-               print ('ERROR: exception executing Holtwinters')
+               print ('ERROR: exception executing Holtwinters: '+ str(e))
 
 
         best_mae=999999999

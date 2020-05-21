@@ -15,6 +15,14 @@ from engines.var import anomaly_VAR, univariate_anomaly_VAR,univariate_forecast_
 from engines.holtwinter import anomaly_holt,forecast_holt
 from engines.auto_arima import anomaly_AutoArima
 from engines.lstm import anomaly_LSTM, anomaly_uni_LSTM
+from engines.fbprophet import anomaly_fbprophet
+from engines.gluonts import anomaly_gluonts
+from engines.changepointdetection import find_changepoints
+
+
+from datetime import datetime
+
+
 
 from struct import *
 
@@ -157,10 +165,11 @@ def univariate_taskstatus(task_id):
 
     if task.state == 'PENDING':
         response = {
-            'state': task.state,
+            'state': 'Pending',
             'current': 0,
             'total': 1,
-            'status': 'Pending...'
+            'status': 'Pending...',
+            'result': 'Pending'
         }
     if task.state == 'PROGRESS':
         response = {
@@ -174,8 +183,8 @@ def univariate_taskstatus(task_id):
     if task.state == 'SUCCESS':
         response = {
             'state': task.state,
-            'current': 4,
-            'total': 4,
+            'current': 6,
+            'total': 6,
             'result': task.info.get('result', ''),
             'status': task.info.get('status', 'Sucessfully'),
             'task_dump': str(task)
@@ -213,10 +222,12 @@ def back_model_univariate(self, lista_datos,num_fut,desv_mse,train,name):
 
     temp_info = {}
 
+    starttime = datetime.now()
+
     self.update_state(state='PROGRESS',
                       meta={'running': 'LSTM',
                             'status': '',
-                            'total': 4,
+                            'total': 6,
                             'finish': 0 })
     if not train:
 
@@ -241,32 +252,46 @@ def back_model_univariate(self, lista_datos,num_fut,desv_mse,train,name):
 
     else:
 
+
+
         try:
-            engines_output['LSTM'] = anomaly_uni_LSTM(lista_datos,num_fut,desv_mse,train,name)
-            debug['LSTM'] = engines_output['LSTM']['debug']
-            temp_info['LSTM']=engines_output['LSTM']
+            engines_output['gluonts'] = anomaly_gluonts(lista_datos,num_fut,desv_mse,train,name)
+            debug['gluonts'] = engines_output['gluonts']['debug']
+            temp_info['gluonts']=engines_output['gluonts']
             self.update_state(state='PROGRESS',
-                      meta={'running': 'anomaly_AutoArima',
+                      meta={'running': 'gluonts',
                             'status': temp_info,
-                            'total': 4,
+                            'total': 6,
                             'finish': 1})
         except Exception as e:
-            print(e)
-            print ('ERROR: exception executing LSTM univariate')
+
+            print ('ERROR: gluonts univariate: ' + str(e) )
 
 
         try:
-            if (len(lista_datos) > 100):
-                #new_length=
-                lista_datos_ari=lista_datos[len(lista_datos)-100:]
-            engines_output['arima'] = anomaly_AutoArima(lista_datos_ari,num_fut,len(lista_datos),desv_mse)
+            engines_output['fbprophet'] = anomaly_fbprophet(lista_datos,num_fut,desv_mse,train,name)
+            debug['fbprophet'] = engines_output['fbprophet']['debug']
+            temp_info['fbprophet']=engines_output['fbprophet']
+            self.update_state(state='PROGRESS',
+                      meta={'running': 'fbprophet',
+                            'status': temp_info,
+                            'total': 6,
+                            'finish': 2})
+        except Exception as e:
+
+            print ('ERROR: fbprophet univariate: ' + str(e) )
+
+
+        try:
+
+            engines_output['arima'] = anomaly_AutoArima(lista_datos,num_fut,desv_mse,train,name)
             debug['arima'] = engines_output['arima']['debug']
             temp_info['arima']=engines_output['arima']
             self.update_state(state='PROGRESS',
                       meta={'running': 'VAR',
                             'status': temp_info,
-                            'total': 4,
-                            'finish': 2})
+                            'total': 6,
+                            'finish': 3})
         except  Exception as e:
             print(e)
             print ('ERROR: exception executing Autoarima')
@@ -282,8 +307,8 @@ def back_model_univariate(self, lista_datos,num_fut,desv_mse,train,name):
             self.update_state(state='PROGRESS',
                       meta={'running': 'Holtwinters',
                             'status': temp_info,
-                            'total': 4,
-                            'finish': 3})
+                            'total': 6,
+                            'finish': 4})
 
         except  Exception as e:
             print(e)
@@ -312,12 +337,25 @@ def back_model_univariate(self, lista_datos,num_fut,desv_mse,train,name):
             self.update_state(state='PROGRESS',
                       meta={'running': 'Holtwinters',
                             'status': temp_info,
-                            'total': 4,
-                            'finish': 4})
+                            'total': 6,
+                            'finish': 5})
 
         except  Exception as e:
                print(e)
                print ('ERROR: exception executing Holtwinters')
+
+        try:
+            engines_output['LSTM'] = anomaly_uni_LSTM(lista_datos,num_fut,desv_mse,train,name)
+            debug['LSTM'] = engines_output['LSTM']['debug']
+            temp_info['LSTM']=engines_output['LSTM']
+            self.update_state(state='PROGRESS',
+                      meta={'running': 'anomaly_AutoArima',
+                            'status': temp_info,
+                            'total': 6,
+                            'finish': 6})
+        except Exception as e:
+            print(e)
+            print ('ERROR: exception executing LSTM univariate')
 
 
         best_mae=999999999
@@ -345,14 +383,37 @@ def back_model_univariate(self, lista_datos,num_fut,desv_mse,train,name):
 
 #    return merge_two_dicts(engines_output[winner] , temp)
     salida = merge_two_dicts(engines_output[winner], temp_info)
+    finishtime = datetime.now()
+    diff_time = finishtime - starttime
+    salida['time']= diff_time.total_seconds()
+    salida['changepoint'] = find_changepoints(lista_datos)
     salida['winner'] = winner
     salida['trend']= trendline(lista_datos)
     salida_temp= {}
     salida_temp['status'] = salida
     salida_temp['current'] = 100
-    salida_temp['total']=4
-    salida_temp['finish'] =4
+    salida_temp['total']=5
+    salida_temp['finish'] =5
     salida_temp['result'] ='Task completed'
+
+
+    # insert json output to mongodb
+    import pymongo
+    from pymongo import MongoClient
+    import os
+    import pandas as pd
+    import numpy as np
+
+    timecop_backend = os.getenv('mongodb_backend' )
+    if timecop_backend != None:
+        client = MongoClient(timecop_backend)
+        # database
+        mongo_db = client["ts"]
+        timecop_db= mongo_db["timecop"]
+        # data_dict = resultado.to_dict("records")
+        lista_puntos = np.arange(0, len(lista_datos),1)
+        df = pd.DataFrame(list(zip(lista_puntos, lista_datos)), columns = ['step','value'])
+        timecop_db.insert_one({"name":name,"data":salida_temp, "ts": df.to_dict(orient='record')})
 
     return  salida_temp
 
@@ -481,7 +542,7 @@ def  back_multivariate_engine():
     #return jsonify(salida), 201
 
     print ("invoco el backend")
-    salida = back_model_multivariate.s(lista_datos=list_var,num_fut=num_fut,desv_mse=desv_mae,train=train,name=name).apply_async()
+    salida = back_model_multivariate.s(list_var=list_var,num_fut=num_fut,desv_mse=desv_mae,train=train,name=name).apply_async()
 
     print (salida.id)
 
@@ -499,25 +560,29 @@ def multivariate_taskstatus(task_id):
     print ("llega aqui")
     print (task)
 
+
     if task.state == 'PENDING':
         response = {
-            'state': task.state,
+            'state': 'Pending',
             'current': 0,
             'total': 1,
-            'status': 'Pending...'
+            'status': 'Pending...',
+            'result': 'Pending'
         }
     if task.state == 'PROGRESS':
         response = {
             'state': task.state,
-            'current': 0,
-            'total': 1,
-            'status': task.info.get('status', 'Running...')
+            'current': task.info.get('current', 0),
+            'total': task.info.get('total', 1),
+            'status': task.info.get('status', ''),
+            'result': task.info.get('result', ''),
+            'response': task.info
         }
     if task.state == 'SUCCESS':
         response = {
             'state': task.state,
-            'current': 4,
-            'total': 4,
+            'current': 6,
+            'total': 6,
             'result': task.info.get('result', ''),
             'status': task.info.get('status', 'Sucessfully'),
             'task_dump': str(task)
@@ -529,7 +594,7 @@ def multivariate_taskstatus(task_id):
         #     print ("el result NO aparece en el SUCCESS")
 
 
-    elif task.state != 'FAILURE':
+    elif task.state == 'FAILURE':
         response = {
             'state': task.state,
             'current': task.info.get('current', 0),
@@ -537,16 +602,6 @@ def multivariate_taskstatus(task_id):
             'status': task.info.get('status', ''),
             'result': task.info.get('result', ''),
             'response': task.info
-        }
-    else:
-
-        # something went wrong in the background job
-        response = {
-            'state': task.state,
-            'current': 1,
-            'total': 1,
-            'status': str(task.info),  # this is the exception raised
-            'result': task.info
         }
     print (task.state)
     print(task.info)
@@ -560,10 +615,24 @@ def back_model_multivariate(self, list_var,num_fut,desv_mse,train=True,name='Tes
 
     engines_output={}
     debug = {}
+    temp_info = {}
+
+    self.update_state(state='PROGRESS',
+        meta={'running': 'LSTM',
+            'status': temp_info,
+            'total': 2,
+            'finish': 2})
 
     try:
         engines_output['LSTM'] = anomaly_LSTM(list_var,num_fut,desv_mse)
         debug['LSTM'] = engines_output['LSTM']['debug']
+        temp_info['LSTM']=engines_output['LSTM']
+        self.update_state(state='PROGRESS',
+            meta={'running': 'VAR',
+                'status': temp_info,
+                'total': 2,
+                'finish': 1})
+        
         print (engines_output['LSTM'])
     except   Exception as e:
         print(e)
@@ -572,11 +641,16 @@ def back_model_multivariate(self, list_var,num_fut,desv_mse,train=True,name='Tes
     try:
         engines_output['VAR'] = anomaly_VAR(list_var,num_fut)
         debug['VAR'] = engines_output['VAR']['debug']
+        temp_info['VAR']=engines_output['VAR']
+        self.update_state(state='PROGRESS',
+            meta={'running': 'VAR',
+                'status': temp_info,
+                'total': 2,
+                'finish': 2})
         print (engines_output['VAR'])
     except   Exception as e:
         print(Exception)
         print("type error: " + str(e))
-        print(traceback.format_exc())
         print ('ERROR: exception executing VAR')
 
     best_mae=999999999
@@ -598,7 +672,7 @@ def back_model_multivariate(self, list_var,num_fut,desv_mse,train=True,name='Tes
     #return merge_two_dicts(engines_output[winner] , temp)
     salida = merge_two_dicts(engines_output[winner], temp_info)
     salida['winner'] = winner
-    salida['trend']= trendline(lista_datos)
+    salida['trend']= trendline(list_var[0])
     salida_temp= {}
     salida_temp['status'] = salida
     salida_temp['current'] = 100
@@ -623,6 +697,64 @@ def monitoring_winners():
     model_name = request.args.get('model_name', default = '%', type = str)
     data_models= db.get_winners(model_name)
     return jsonify(data_models.to_dict(orient='record')),201
+
+
+@app.route('/result_list', methods=['POST','GET'])
+def result_list():
+    from bson import json_util
+    timedata = request.get_json()
+    collection_ts = timedata.get('collection', 'NA')
+    database = timedata.get('database', 'NA')
+    url = timedata.get('url', 'NA')
+    ###"mongodb://username:pwd@ds261570.mlab.com:61570/ts?retryWrites=false"
+
+    import pandas as pd
+    import pymongo
+    from pymongo import MongoClient
+    # Making a Connection with MongoClient
+    client = MongoClient(url)
+    # database
+    db = client[database]
+    # collection
+    collection_data= db[collection_ts]
+    import time
+    import json
+    from bson import json_util, ObjectId
+
+    #Dump loaded BSON to valid JSON string and reload it as dict
+    page_sanitized = json.loads(json_util.dumps(collection_data.find({},{'name':1})))
+    return jsonify(page_sanitized), 201
+
+@app.route('/result_document', methods=['POST','GET'])
+def result_document():
+        from bson import json_util
+        timedata = request.get_json()
+        database = timedata.get('database', 'NA')
+        url = timedata.get('url', 'NA')
+        input_name = timedata.get('name','NA')
+        collection_ts = timedata.get('collection_ts','ts')
+        collection_timecop = timedata.get('collection_timecop','timecop')
+        ###"mongodb://username:pwd@ds261570.mlab.com:61570/ts?retryWrites=false"
+
+        import pymongo
+        from pymongo import MongoClient
+        # Making a Connection with MongoClient
+        client = MongoClient(url)
+        # database
+        db = client[database]
+        # collection
+        data_collection_ts= db[collection_ts]
+        ts_data = data_collection_ts.find_one({"name": input_name})
+        data_collection_timecop= db[collection_timecop]
+        timecop_data = data_collection_timecop.find_one({"name": input_name})
+        timecop_data['ts']=ts_data['data']
+        import time
+        import json
+        from bson import json_util, ObjectId
+
+        #Dump loaded BSON to valid JSON string and reload it as dict
+        page_sanitized = json.loads(json_util.dumps(timecop_data))
+        return jsonify(page_sanitized), 201
 
 
 @app.route('/')

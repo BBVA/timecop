@@ -23,12 +23,10 @@ from keras.layers.core import Dense
 import gc
 
 import math
-from matplotlib import pyplot
 from numpy.random import seed
 seed(69)
 from math import sqrt
 from numpy import concatenate
-import matplotlib.pyplot as plt
 from pandas import read_csv
 from pandas import DataFrame
 from pandas import concat
@@ -432,9 +430,9 @@ def anomaly_uni_LSTM(lista_datos,num_forecast=10,desv_mse=2,train='True',name='t
 
     engine_output={}
 
-    engine_output['rmse'] = int(rmse)
-    engine_output['mse'] = int(mse)
-    engine_output['mae'] = int(mae)
+    engine_output['rmse'] = float(rmse)
+    engine_output['mse'] = float(mse)
+    engine_output['mae'] = float(mae)
     engine_output['present_status']=exists_anom_last_5
     engine_output['present_alerts']=df_aler_ult.fillna(0).to_dict(orient='record')
     engine_output['past']=df_aler.fillna(0).to_dict(orient='record')
@@ -486,7 +484,7 @@ def series_to_supervised(data, n_in=1, n_out=1, dropnan=True):
 
 
 
-def anomaly_LSTM(list_var,num_fut=10,desv_mae=2):
+def anomaly_LSTM(list_var,num_forecast=10,desv_mse=2):
 
     df_var = pd.DataFrame()
     for i in range(len(list_var)):
@@ -545,8 +543,8 @@ def anomaly_LSTM(list_var,num_fut=10,desv_mae=2):
 
     models_dict = {}
     n_hlayers = [1, 2, 3]
-    n_nodes = [100, 300, 500,700]
-    n_dropout = [0, 0.1, 0.15, 0.20]
+    n_nodes = [100, 300, 700]
+    n_dropout = [0, 0.1, 0.20]
 
     #pruebas
     #n_hlayers = [1]

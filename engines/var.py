@@ -311,6 +311,7 @@ def anomaly_VAR(list_var,num_fut):
 
 
     df_var.rename(columns = {df_var.columns[-1]:'expected value'},inplace=True)
+    df_var = df_var.astype('double')
     tam_train = int(len(df_var)*0.7)
     #print tam_train
     df_train = df_var[:tam_train]
