@@ -26,6 +26,24 @@ To use TIMECOP engine you will need to send a univariate or multivariate time se
 
 ![alt text](https://raw.githubusercontent.com/BBVA/timecop/master/doc/img/flow_chart.jpg)
 
+## Installation
+
+To use timecop the easiest way is to deploy the docker image made with the last version.
+The steps to use the docker images are:
+
+ 1. Install docker
+ 2. Download timecop docker image:
+ 
+ 	**docker pull trakuo/timecop:devel**
+ 3. Execute a container with the timecop image:
+ 
+	**docker run --name timecoprunning -p 3000:80 trakuo/timecop:devel**
+ 5. Open web test page to test timecop is running
+ 
+	 **http://localhost:3000/static/index.html**
+
+
+
 ## Web test page
 
 to use timecop there is another option, a web page that you can use locally and test timecop from CSV files before integrating it into any application
