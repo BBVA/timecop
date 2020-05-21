@@ -20,7 +20,6 @@ from numpy.random import seed
 seed(69)
 from math import sqrt
 from numpy import concatenate
-import matplotlib.pyplot as plt
 from pandas import DataFrame
 from pandas import concat
 from sklearn.preprocessing import MinMaxScaler

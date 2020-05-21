@@ -78,6 +78,7 @@ def anomaly_holt(lista_datos,num_fut,desv_mse=0,name='NA'):
     mae_period = 99999999
     best_period=0
     best_trend='null'
+    best_seasonal = 999999
     #list_trend=['add','mul','additive','multiplicative']
     list_trend=['add','mul', 'additive', 'multiplicative'] #,'None']
     print ("pasa hasta aqui")
