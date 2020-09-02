@@ -62,7 +62,7 @@ def anomaly_AutoArima(lista_datos,num_fut,desv_mse=0,train='True',name='model-na
         pickle.dump(stepwise_model, pkl)
     forecast = updated_model.predict(n_periods=num_fut)
 
-    engine.forecast_creation( forecast,orig_size,num_fut)
+    engine.forecast_creation( forecast.tolist(),orig_size,num_fut)
     print("Ended Autorima engine")
 
     return (engine.engine_output)

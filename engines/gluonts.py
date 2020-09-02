@@ -58,5 +58,5 @@ def anomaly_gluonts(lista_datos,num_fut,desv_mse=0,train=True,name='model-name')
     prediction = next(predictor.predict(dataset))
 
 
-    engine.forecast_creation( prediction.mean, len(lista_datos),num_fut)
+    engine.forecast_creation( prediction.mean.tolist(), len(lista_datos),num_fut)
     return (engine.engine_output)

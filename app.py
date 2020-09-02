@@ -11,12 +11,16 @@ from celery import Celery
 
 # import engines functions_timeseries
 from engines.helpers import merge_two_dicts,trendline
-from engines.var import anomaly_VAR, univariate_anomaly_VAR,univariate_forecast_VAR
+from engines.var import anomaly_VAR, univariate_anomaly_VAR,univariate_forecast_VAR,anomaly_var
 from engines.holtwinter import anomaly_holt,forecast_holt
 from engines.auto_arima import anomaly_AutoArima
 from engines.lstm import anomaly_LSTM, anomaly_uni_LSTM
 from engines.fbprophet import anomaly_fbprophet
 from engines.gluonts import anomaly_gluonts
+from engines.nbeats import anomaly_nbeats
+from engines.vecm import anomaly_vecm
+from engines.tcn import anomaly_tcn
+
 from engines.changepointdetection import find_changepoints
 
 
@@ -217,6 +221,16 @@ def univariate_taskstatus(task_id):
 
 @celery.task(bind=True)
 def back_model_univariate(self, lista_datos,num_fut,desv_mse,train,name):
+    engines = {'LSTM': 'anomaly_uni_LSTM(lista_datos,num_fut,desv_mse,train,name)',
+                'VAR': 'anomaly_var(lista_datos,num_fut,desv_mse,train,name)',
+                'nbeats': 'anomaly_nbeats(lista_datos,num_fut,desv_mse,train,name)',
+                'gluonts': 'anomaly_gluonts(lista_datos,num_fut,desv_mse,train,name)',
+                'fbprophet': 'anomaly_fbprophet(lista_datos,num_fut,desv_mse,train,name)',
+                'arima': 'anomaly_AutoArima(lista_datos,num_fut,desv_mse,train,name)',
+                'Holtwinters': 'anomaly_holt(lista_datos_holt,num_fut,desv_mse,name)',
+                'tcn': 'anomaly_tcn(lista_datos,num_fut,desv_mse,train,name)'
+                }
+
     engines_output={}
     debug = {}
 
@@ -224,156 +238,230 @@ def back_model_univariate(self, lista_datos,num_fut,desv_mse,train,name):
 
     starttime = datetime.now()
 
-    self.update_state(state='PROGRESS',
-                      meta={'running': 'LSTM',
-                            'status': '',
-                            'total': 6,
-                            'finish': 0 })
-    if not train:
 
-        (model_name,model,params)=db.get_best_model('winner_'+name)
-        # print ("recupero el motor " )
-        winner= model_name
-        if winner == 'LSTM':
-            try:
-                engines_output['LSTM'] = anomaly_uni_LSTM(lista_datos,num_fut,desv_mse,train,name)
-                debug['LSTM'] = engines_output['LSTM']['debug']
-            except Exception as e:
-                print(e)
-                print ('ERROR: exception executing LSTM univariate')
-        elif winner == 'VAR':
-            engines_output['VAR'] = univariate_forecast_VAR(lista_datos,num_fut,name)
-            debug['VAR'] = engines_output['VAR']['debug']
-        elif winner == 'Holtwinters':
-           engines_output['Holtwinters'] = forecast_holt(lista_datos,num_fut,desv_mse,name)
-           debug['Holtwinters'] = engines_output['Holtwinters']['debug']
-        else:
-            print ("Error")
+    # Holtwinters workaround, must to solve
+    if (len(lista_datos) > 2000):
 
+        lista_datos_holt=lista_datos[len(lista_datos)-2000:]
     else:
+        lista_datos_holt = lista_datos
 
-
-
+    counter = 0
+    for engine_name, engine_function in engines.items() :
+        self.update_state(state='PROGRESS',
+                          meta={'running': engine_name,
+                                'status': temp_info,
+                                'total': len(engines),
+                                'finish': counter })
         try:
-            engines_output['gluonts'] = anomaly_gluonts(lista_datos,num_fut,desv_mse,train,name)
-            debug['gluonts'] = engines_output['gluonts']['debug']
-            temp_info['gluonts']=engines_output['gluonts']
+            engines_output[engine_name] = eval(engine_function)
+            debug[engine_name] = engines_output[engine_name]['debug']
+            temp_info[engine_name]=engines_output[engine_name]
             self.update_state(state='PROGRESS',
-                      meta={'running': 'gluonts',
+                      meta={'running': engine_name,
                             'status': temp_info,
                             'total': 6,
                             'finish': 1})
         except Exception as e:
 
-            print ('ERROR: gluonts univariate: ' + str(e) )
+            print ('ERROR: ' + engine_name +' univariate: ' + str(e) )
+        counter = counter + 1
+
+        if (train):
+
+            best_mae=999999999
+            winner='VAR'
+            print ('The size is: ')
+            print (len(engines_output))
+            for key, value in engines_output.items():
+                print (key + "   " + str(value['mae']))
+
+                if value['mae'] < best_mae:
+                    best_mae=value['mae']
+                    winner=key
+                print(winner)
+
+            db.new_model('winner_'+name, winner, pack('N', 365),'',0)
 
 
-        try:
-            engines_output['fbprophet'] = anomaly_fbprophet(lista_datos,num_fut,desv_mse,train,name)
-            debug['fbprophet'] = engines_output['fbprophet']['debug']
-            temp_info['fbprophet']=engines_output['fbprophet']
-            self.update_state(state='PROGRESS',
-                      meta={'running': 'fbprophet',
-                            'status': temp_info,
-                            'total': 6,
-                            'finish': 2})
-        except Exception as e:
-
-            print ('ERROR: fbprophet univariate: ' + str(e) )
+            print (winner)
 
 
-        try:
-
-            engines_output['arima'] = anomaly_AutoArima(lista_datos,num_fut,desv_mse,train,name)
-            debug['arima'] = engines_output['arima']['debug']
-            temp_info['arima']=engines_output['arima']
-            self.update_state(state='PROGRESS',
-                      meta={'running': 'VAR',
-                            'status': temp_info,
-                            'total': 6,
-                            'finish': 3})
-        except  Exception as e:
-            print(e)
-            print ('ERROR: exception executing Autoarima')
-
-        try:
-            if (train):
-                engines_output['VAR'] = univariate_anomaly_VAR(lista_datos,num_fut,name)
-                debug['VAR'] = engines_output['VAR']['debug']
-            else:
-                engines_output['VAR'] = univariate_forecast_VAR(lista_datos,num_fut,name)
-                debug['VAR'] = engines_output['VAR']['debug']
-            temp_info['VAR'] = engines_output['VAR']
-            self.update_state(state='PROGRESS',
-                      meta={'running': 'Holtwinters',
-                            'status': temp_info,
-                            'total': 6,
-                            'finish': 4})
-
-        except  Exception as e:
-            print(e)
-            print ('ERROR: exception executing VAR')
-
-        try:
-            if (train ):
-                    if (len(lista_datos) > 2000):
-                        #new_length=
-                        lista_datos_holt=lista_datos[len(lista_datos)-2000:]
-                    else:
-                        lista_datos_holt = lista_datos
-                    engines_output['Holtwinters'] = anomaly_holt(lista_datos_holt,num_fut,desv_mse,name)
-                    debug['Holtwinters'] = engines_output['Holtwinters']['debug']
-            else:
-                   print ("entra en forecast")
-                   if (len(lista_datos) > 2000):
-                       #new_length=
-                       lista_datos_holt=lista_datos[len(lista_datos)-2000:]
-                   else:
-                       lista_datos_holt = lista_datos
-                   engines_output['Holtwinters'] = forecast_holt(lista_datos,num_fut,desv_mse,name)
-                   debug['Holtwinters'] = engines_output['Holtwinters']['debug']
-
-            temp_info['Holtwinters'] = engines_output['Holtwinters']
-            self.update_state(state='PROGRESS',
-                      meta={'running': 'Holtwinters',
-                            'status': temp_info,
-                            'total': 6,
-                            'finish': 5})
-
-        except  Exception as e:
-               print(e)
-               print ('ERROR: exception executing Holtwinters')
-
-        try:
-            engines_output['LSTM'] = anomaly_uni_LSTM(lista_datos,num_fut,desv_mse,train,name)
-            debug['LSTM'] = engines_output['LSTM']['debug']
-            temp_info['LSTM']=engines_output['LSTM']
-            self.update_state(state='PROGRESS',
-                      meta={'running': 'anomaly_AutoArima',
-                            'status': temp_info,
-                            'total': 6,
-                            'finish': 6})
-        except Exception as e:
-            print(e)
-            print ('ERROR: exception executing LSTM univariate')
 
 
-        best_mae=999999999
-        winner='VAR'
-        print ('The size is: ')
-        print (len(engines_output))
-        for key, value in engines_output.items():
-            print (key + "   " + str(value['mae']))
-
-            if value['mae'] < best_mae:
-                best_mae=value['mae']
-                winner=key
-            print(winner)
-
-        db.new_model('winner_'+name, winner, pack('N', 365),'',0)
 
 
-        print (winner)
+
+
+
+
+
+    # self.update_state(state='PROGRESS',
+    #                   meta={'running': 'LSTM',
+    #                         'status': '',
+    #                         'total': 6,
+    #                         'finish': 0 })
+    # if not train:
+    #
+    #     (model_name,model,params)=db.get_best_model('winner_'+name)
+    #     # print ("recupero el motor " )
+    #     winner= model_name
+    #     if winner == 'LSTM':
+    #         try:
+    #             engines_output['LSTM'] = anomaly_uni_LSTM(lista_datos,num_fut,desv_mse,train,name)
+    #             debug['LSTM'] = engines_output['LSTM']['debug']
+    #         except Exception as e:
+    #             print(e)
+    #             print ('ERROR: exception executing LSTM univariate')
+    #     elif winner == 'VAR':
+    #         engines_output['VAR'] = univariate_forecast_VAR(lista_datos,num_fut,name)
+    #         debug['VAR'] = engines_output['VAR']['debug']
+    #     elif winner == 'Holtwinters':
+    #        engines_output['Holtwinters'] = forecast_holt(lista_datos,num_fut,desv_mse,name)
+    #        debug['Holtwinters'] = engines_output['Holtwinters']['debug']
+    #     else:
+    #         print ("Error")
+    #
+    # else:
+    #
+    #
+    #
+    #
+    #     try:
+    #         engines_output['nbeats'] = anomaly_nbeats(lista_datos,num_fut,desv_mse,train,name)
+    #         debug['nbeats'] = engines_output['nbeats']['debug']
+    #         temp_info['nbeats']=engines_output['nbeats']
+    #         self.update_state(state='PROGRESS',
+    #                   meta={'running': 'nbeats',
+    #                         'status': temp_info,
+    #                         'total': 7,
+    #                         'finish': 1})
+    #     except Exception as e:
+    #
+    #         print ('ERROR: nbeats univariate: ' + str(e) )
+    #
+    #
+    #
+    #     try:
+    #         engines_output['gluonts'] = anomaly_gluonts(lista_datos,num_fut,desv_mse,train,name)
+    #         debug['gluonts'] = engines_output['gluonts']['debug']
+    #         temp_info['gluonts']=engines_output['gluonts']
+    #         self.update_state(state='PROGRESS',
+    #                   meta={'running': 'gluonts',
+    #                         'status': temp_info,
+    #                         'total': 6,
+    #                         'finish': 1})
+    #     except Exception as e:
+    #
+    #         print ('ERROR: gluonts univariate: ' + str(e) )
+    #
+    #
+    #     try:
+    #         engines_output['fbprophet'] = anomaly_fbprophet(lista_datos,num_fut,desv_mse,train,name)
+    #         debug['fbprophet'] = engines_output['fbprophet']['debug']
+    #         temp_info['fbprophet']=engines_output['fbprophet']
+    #         self.update_state(state='PROGRESS',
+    #                   meta={'running': 'fbprophet',
+    #                         'status': temp_info,
+    #                         'total': 6,
+    #                         'finish': 2})
+    #     except Exception as e:
+    #
+    #         print ('ERROR: fbprophet univariate: ' + str(e) )
+    #
+    #
+    #     try:
+    #
+    #         engines_output['arima'] = anomaly_AutoArima(lista_datos,num_fut,desv_mse,train,name)
+    #         debug['arima'] = engines_output['arima']['debug']
+    #         temp_info['arima']=engines_output['arima']
+    #         self.update_state(state='PROGRESS',
+    #                   meta={'running': 'VAR',
+    #                         'status': temp_info,
+    #                         'total': 6,
+    #                         'finish': 3})
+    #     except  Exception as e:
+    #         print(e)
+    #         print ('ERROR: exception executing Autoarima')
+    #
+    #     try:
+    #         if (train):
+    #             engines_output['VAR'] = univariate_anomaly_VAR(lista_datos,num_fut,name)
+    #             debug['VAR'] = engines_output['VAR']['debug']
+    #         else:
+    #             engines_output['VAR'] = univariate_forecast_VAR(lista_datos,num_fut,name)
+    #             debug['VAR'] = engines_output['VAR']['debug']
+    #         temp_info['VAR'] = engines_output['VAR']
+    #         self.update_state(state='PROGRESS',
+    #                   meta={'running': 'Holtwinters',
+    #                         'status': temp_info,
+    #                         'total': 6,
+    #                         'finish': 4})
+    #
+    #     except  Exception as e:
+    #         print(e)
+    #         print ('ERROR: exception executing VAR')
+    #
+    #     try:
+    #         if (train ):
+    #                 if (len(lista_datos) > 2000):
+    #                     #new_length=
+    #                     lista_datos_holt=lista_datos[len(lista_datos)-2000:]
+    #                 else:
+    #                     lista_datos_holt = lista_datos
+    #                 engines_output['Holtwinters'] = anomaly_holt(lista_datos_holt,num_fut,desv_mse,name)
+    #                 debug['Holtwinters'] = engines_output['Holtwinters']['debug']
+    #         else:
+    #                print ("entra en forecast")
+    #                if (len(lista_datos) > 2000):
+    #                    #new_length=
+    #                    lista_datos_holt=lista_datos[len(lista_datos)-2000:]
+    #                else:
+    #                    lista_datos_holt = lista_datos
+    #                engines_output['Holtwinters'] = forecast_holt(lista_datos,num_fut,desv_mse,name)
+    #                debug['Holtwinters'] = engines_output['Holtwinters']['debug']
+    #
+    #         temp_info['Holtwinters'] = engines_output['Holtwinters']
+    #         self.update_state(state='PROGRESS',
+    #                   meta={'running': 'Holtwinters',
+    #                         'status': temp_info,
+    #                         'total': 6,
+    #                         'finish': 5})
+    #
+    #     except  Exception as e:
+    #            print(e)
+    #            print ('ERROR: exception executing Holtwinters')
+    #
+    #     try:
+    #         engines_output['LSTM'] = anomaly_uni_LSTM(lista_datos,num_fut,desv_mse,train,name)
+    #         debug['LSTM'] = engines_output['LSTM']['debug']
+    #         temp_info['LSTM']=engines_output['LSTM']
+    #         self.update_state(state='PROGRESS',
+    #                   meta={'running': 'anomaly_AutoArima',
+    #                         'status': temp_info,
+    #                         'total': 6,
+    #                         'finish': 6})
+    #     except Exception as e:
+    #         print(e)
+    #         print ('ERROR: exception executing LSTM univariate')
+    #
+    #
+    #     best_mae=999999999
+    #     winner='VAR'
+    #     print ('The size is: ')
+    #     print (len(engines_output))
+    #     for key, value in engines_output.items():
+    #         print (key + "   " + str(value['mae']))
+    #
+    #         if value['mae'] < best_mae:
+    #             best_mae=value['mae']
+    #             winner=key
+    #         print(winner)
+    #
+    #     db.new_model('winner_'+name, winner, pack('N', 365),'',0)
+    #
+    #
+    #     print (winner)
 
     print ("el ganador es " + str(winner))
     print (engines_output[winner])
@@ -497,20 +585,20 @@ def  back_multivariate_engine():
     list_var=[]
     for item in items:
         data = item['data']
-        if(name != 'NA'):
-            sub_name = item['name']
+        try:
 
-            filename= './lst/'+name + '_' + sub_name +'.lst'
-            try:
+            if(name != 'NA'):
+                sub_name = item['name']
+
+                filename= './lst/'+name + '_' + sub_name +'.lst'
                 with open(filename, 'r') as filehandle:
                     previousList = json.load(filehandle)
-            except Exception:
-                previousList=[]
 
-            lista = previousList + data
-            with open(filename, 'w') as filehandle:
-                json.dump(lista,filehandle)
-
+                lista = previousList + data
+                with open(filename, 'w') as filehandle:
+                    json.dump(lista,filehandle)
+        except Exception:
+            previousList=[]
 
         list_var.append(data)
 
@@ -518,16 +606,18 @@ def  back_multivariate_engine():
 
     lista = timedata['main']
     if(name != 'NA'):
-        filename= './lst/'+name+'.lst'
+
         try:
+            filename= './lst/'+name+'.lst'
             with open(filename, 'r') as filehandle:
                 previousList = json.load(filehandle)
+            lista = previousList + lista
+            with open(filename, 'w') as filehandle:
+                json.dump(lista,filehandle)
+
         except Exception:
             previousList=[]
 
-        lista = previousList + lista
-        with open(filename, 'w') as filehandle:
-            json.dump(lista,filehandle)
 
     list_var.append(lista)
 
@@ -632,11 +722,12 @@ def back_model_multivariate(self, list_var,num_fut,desv_mse,train=True,name='Tes
                 'status': temp_info,
                 'total': 2,
                 'finish': 1})
-        
+
         print (engines_output['LSTM'])
     except   Exception as e:
         print(e)
         print ('ERROR: exception executing LSTM')
+
 
     try:
         engines_output['VAR'] = anomaly_VAR(list_var,num_fut)
@@ -652,6 +743,21 @@ def back_model_multivariate(self, list_var,num_fut,desv_mse,train=True,name='Tes
         print(Exception)
         print("type error: " + str(e))
         print ('ERROR: exception executing VAR')
+
+    try:
+        engines_output['VECM'] = anomaly_vecm(list_var,num_fut,desv_mse)
+        debug['VECM'] = engines_output['VECM']['debug']
+        temp_info['VECM']=engines_output['VECM']
+        self.update_state(state='PROGRESS',
+            meta={'running': 'VECM',
+                'status': temp_info,
+                'total': 2,
+                'finish': 1})
+
+        print (engines_output['VECM'])
+    except   Exception as e:
+        print(e)
+        print ('ERROR: exception executing VECM')
 
     best_mae=999999999
     winner='LSTM'
@@ -705,7 +811,12 @@ def result_list():
     timedata = request.get_json()
     collection_ts = timedata.get('collection', 'NA')
     database = timedata.get('database', 'NA')
-    url = timedata.get('url', 'NA')
+    timecop_backend = os.getenv('mongodb_backend' )
+
+    if timecop_backend != None:
+        url = timecop_backend
+    else:
+        url = timedata.get('url', 'NA')
     ###"mongodb://username:pwd@ds261570.mlab.com:61570/ts?retryWrites=false"
 
     import pandas as pd
@@ -730,12 +841,18 @@ def result_document():
         from bson import json_util
         timedata = request.get_json()
         database = timedata.get('database', 'NA')
-        url = timedata.get('url', 'NA')
+        # url = timedata.get('url', 'NA')
         input_name = timedata.get('name','NA')
         collection_ts = timedata.get('collection_ts','ts')
         collection_timecop = timedata.get('collection_timecop','timecop')
         ###"mongodb://username:pwd@ds261570.mlab.com:61570/ts?retryWrites=false"
 
+        timecop_backend = os.getenv('mongodb_backend' )
+
+        if timecop_backend != None:
+            url = timecop_backend
+        else:
+            url = timedata.get('url', 'NA')
         import pymongo
         from pymongo import MongoClient
         # Making a Connection with MongoClient
