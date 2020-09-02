@@ -93,16 +93,41 @@ Open web test page to test timecop is running
 http://localhost:3000/static/index.html
 ```
 
-## pip module
-You can use this python module to invoke in any python program timecop forecasting features.
+## pip python package
+A python package to invoke Timecop from any python code, using the RESTful Web Server API for you.
+For more information, go to the [pip module](https://pypi.org/project/timecopts/)
+
+###### UNIVARIATE
 
 ```
-import timecop-timseseries as tc
-test_ts=[1,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9]
-URL = 'http://localhost:3000/'
-result = tc.timecop_univariate(URL,'ts_name', True, test_ts)
-print(result)
+import timecopts as tc
+TS=[1,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9]
+
+URL = 'URL_timecop_server'
+output_json = tc.timecop_univariate(URL,name='test_timeseries', TS,  train=True, restart=True)
+
 ```
+
+###### MULTIVARIATE
+
+
+```
+import timecopts as tc
+TS_main=[1,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9]
+
+TS_timeseries= []
+temp = {}
+temp['data'] = [1,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9]
+TS_timeseries.append(temp)
+temp2 = {}
+temp2['data'] = [1,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9]
+TS_timeseries.append(temp2)
+
+URL = 'URL_timecop_server'
+output_json = tc.timecop_multivariate(URL,name='test_timeseries', TS_main,TS_timeseries,  train=True, restart=True)
+```
+
+
 
 ## Web test page
 
