@@ -34,8 +34,8 @@ To use TIMECOP engine you will need to send a univariate or multivariate time se
 #### Secondary Features
 - [x] Delta / Full timesteps upload
 - [x] Train / Use best known model in production envirotnment
-- [x] Python API for easy integration in notebooks / python apps 
-- [x] Backend Database 
+- [x] Python API for easy integration in notebooks / python apps
+- [x] Backend Database
 
 
 
@@ -48,9 +48,11 @@ To use TIMECOP engine you will need to send a univariate or multivariate time se
 - [x] Gluon-ts
 - [x] Holtwinters
 - [x] ARIMA
+- [x] N-beats
+- [x] Temporal Convolutional Network
 - [ ] TBATS
 
-    
+
 #### Multivariate
 - [x] Long Short Term Memory networks
 - [x] vector autoregression
@@ -69,6 +71,63 @@ To use TIMECOP engine you will need to send a univariate or multivariate time se
 - [x] Trend
 - [x] ChangePoints
 - [ ] Confidence interval
+
+## Installation
+To use timecop the easiest way is to deploy the docker image made with the last version. The steps to use the docker images are:
+
+## Install docker
+
+Download timecop docker image:
+```
+docker pull trakuo/timecop:devel
+```
+
+Execute a container with the timecop image:
+
+```
+docker run --name timecoprunning -p 3000:80 trakuo/timecop:devel
+```
+
+Open web test page to test timecop is running
+```
+http://localhost:3000/static/index.html
+```
+
+## pip python package
+A python package to invoke Timecop from any python code, using the RESTful Web Server API for you.
+For more information, go to the [pip module](https://pypi.org/project/timecopts/)
+
+###### UNIVARIATE
+
+```
+import timecopts as tc
+TS=[1,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9]
+
+URL = 'URL_timecop_server'
+output_json = tc.timecop_univariate(URL,name='test_timeseries', TS,  train=True, restart=True)
+
+```
+
+###### MULTIVARIATE
+
+
+```
+import timecopts as tc
+TS_main=[1,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9]
+
+TS_timeseries= []
+temp = {}
+temp['data'] = [1,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9]
+TS_timeseries.append(temp)
+temp2 = {}
+temp2['data'] = [1,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9,2,3,4,5,6,7,8,9]
+TS_timeseries.append(temp2)
+
+URL = 'URL_timecop_server'
+output_json = tc.timecop_multivariate(URL,name='test_timeseries', TS_main,TS_timeseries,  train=True, restart=True)
+```
+
+
 
 ## Web test page
 

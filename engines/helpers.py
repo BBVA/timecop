@@ -15,6 +15,12 @@ def trendline(data, order=1):
 
 
 
+def reshape_array(x):
+    assert len(x.shape) == 2, 'input np.array should be in the format: samples, timesteps'
+    if len(x.shape) == 2:
+        nb_samples, nb_timestamps = x.shape
+        return x.reshape((nb_samples, nb_timestamps, 1))
+
 
 def seasonal_options (a):
   print(" Starting seasonal finding")

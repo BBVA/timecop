@@ -1,12 +1,12 @@
 import numpy as np
 import pandas as pd
-import pmdarima as pm
 from sklearn.metrics import mean_squared_error,mean_absolute_error
 from . helpers import create_train_test
 import pickle
 from datetime import datetime
 import pandas as pd
 from fbprophet import Prophet
+from sklearn.metrics import r2_score
 
 
 def smape(A, F):
@@ -66,7 +66,7 @@ class engine_output_creation:
     return('ok')
 
   def forecast_creation(self,forecasted_list , start_step,num_fut):
-    df_future= pd.DataFrame(forecasted_list.tolist(),columns=['value'])
+    df_future= pd.DataFrame(forecasted_list,columns=['value'])
     df_future.rename(columns={df_future.columns[0]: "value"},inplace=True)
 
     df_future['value']=df_future.value.astype("float32")
@@ -92,3 +92,4 @@ class engine_output_creation:
     self.engine_output['mse'] = mse
     self.engine_output['mae'] = mean_absolute_error(list_test, list_yhat)
     self.engine_output['smape'] = smape(list_test, list_yhat)
+    self.engine_output['r2'] = r2_score(list_test, list_yhat)

@@ -5,6 +5,87 @@ import pyflux as pf
 #from helpers import helpers as h
 from . BBDD import new_model, get_best_model
 from struct import *
+import pickle
+from . engine_output_creation import engine_output_creation
+from . helpers import create_train_test, reshape_array
+
+
+
+def anomaly_var(lista_datos,num_fut,desv_mse=0,train=True,name='model-name'):
+    lista_puntos = np.arange(0, len(lista_datos),1)
+    df, df_train, df_test = create_train_test(lista_puntos, lista_datos)
+
+    print (type(df_test))
+    mae_period = 99999999
+    best_lag=0
+    lags = int(round(len(df_train)/2))
+    print ("empezamos el bucle")
+    df_train = df_train.astype('float64')
+    for lag in range(lags):
+        model = pf.VAR(df_train,lags=lag)
+        x = model.fit()
+
+
+        print ("fit ready")
+        future_forecast_pred = model.predict(len(df_test))
+        future_forecast_pred = future_forecast_pred[['valores']]
+
+        list_test = df_test['valores'].values
+        list_future_forecast_pred = future_forecast_pred['valores'].values
+
+        mae_temp = mean_absolute_error(list_test, list_future_forecast_pred)
+        print('El error medio del modelo_test es: {}'.format(mae_temp))
+
+        if mae_temp < mae_period:
+            best_lag=lag
+            mae_period=mae_temp
+        else:
+            print ("mae:" + str(mae_period))
+
+    print ("######best mae is " + str(mae_period) + " with the lag " + str(best_lag))
+
+    model = pf.VAR(df_train,lags=best_lag)
+    x = model.fit()
+
+    future_forecast_pred = model.predict(len(df_test))
+    future_forecast_pred = future_forecast_pred[['valores']]
+
+    list_test = df_test['valores'].values
+    list_future_forecast_pred = future_forecast_pred['valores'].values
+
+
+    engine = engine_output_creation('var')
+    engine.alerts_creation(list_future_forecast_pred,df_test)
+    engine.debug_creation(list_future_forecast_pred,df_test)
+    engine.metrics_generation( df_test['valores'].values, list_future_forecast_pred)
+
+    if (train):
+      print ("Saving params")
+      filename = './models_temp/learned_model_var'+name
+      with open(filename,'w') as f:
+        f.write(str(best_lag))
+        f.close()
+        print ("insertando modelo VAR")
+        new_model(name, 'VAR', pack('N', 365),str(best_lag),mae)
+
+
+
+    #####forecast#####
+
+    model_for = pf.VAR(df,lags=best_lag)
+    x_for = model_for.fit()
+
+    future_forecast_pred_for = model.predict(num_fut)
+
+    print("salida del modelo")
+    df_result_forecast = future_forecast_pred_for.reset_index()
+    df_result_forecast = df_result_forecast.rename(columns = {'index':'step'})
+
+    engine.forecast_creation( future_forecast_pred_for['valores'].tolist(), len(lista_datos),num_fut)
+    return (engine.engine_output)
+
+
+
 
 
 def univariate_anomaly_VAR(lista_datos,num_fut,name):
