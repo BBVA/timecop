@@ -1,4 +1,4 @@
-Flask_Cors==3.0.6
+Flask_Cors==3.0.9
 convertdate
 numpy
 Keras
